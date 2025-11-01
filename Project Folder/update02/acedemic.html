@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiction Books - Book Heaven</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      main {
+          background-image: url("images/sitebg.gif");
+          background-size: cover;
+          background-position: center;
+          min-height: 100vh;
+          padding: 2rem 1rem;
+          z-index: 20;
+          }
+        .dropdown-menu {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            display: block;
+            pointer-events: none;
+        }
+        .dropdown:hover .dropdown-menu {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        #cartDropdown {
+            transition: all 0.3s ease;
+        }
+        .dropdown:hover .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+        .search-box:focus-within {
+            border-color: #3b82f6;
+        }
+        .filter-section {
+            transition: all 0.3s ease;
+        }
+        .filter-checkbox:checked + .filter-label {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        }
+        .action-panel {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            width: 320px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .action-panel.show {
+            display: block;
+        }
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item img {
+            width: 50px;
+            height: 70px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .cart-item-details {
+            flex-grow: 1;
+        }
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Top Announcement Bar -->
+    <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
+        Free shipping on orders over RM100 | Member discounts available
+    </div>
+
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <!-- Top Header -->
+            <div class="flex items-center justify-between py-4 border-b">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="index.html">
+                        <img src="img/logo.png" alt="Book Heaven" width="200" height="150">
+                    </a>
+                </div>
+
+
+                <!-- Search Bar -->
+                <div class="hidden md:flex flex-1 mx-8">
+                    <div class="relative w-full max-w-xl">
+                        <div class="search-box flex items-center border rounded-full overflow-hidden">
+                            <input type="text" placeholder="Search books, authors..."
+                                  class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;">
+                            <button class="bg-blue-600 text-white px-6 py-2 hover:bg-blue-700">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-gray-700 hover:text-blue-600">
+                        <i class="fas fa-user text-xl"></i>
+                    </a>
+                    <div class="relative flex items-center space-x-2">
+                        <div class="text-right">
+                            <div class="text-sm font-medium text-gray-700" id="cartSubtotalNav">RM0.00</div>
+                            <div class="text-xs text-gray-500">Cart Total</div>
+                        </div>
+                        <button onclick="toggleCart()" class="text-gray-700 hover:text-blue-600 relative">
+                            <i class="fas fa-shopping-cart text-xl"></i>
+                            <span id="cartCount" class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                        </button>
+                        <div id="cartPanel" class="action-panel absolute mt-2 right-0 top-full">
+                            <div class="p-4 border-b">
+                                <h3 class="font-bold">Your Cart</h3>
+                            </div>
+                            <div id="cartItems">
+                                <div class="empty-state">
+                                    <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
+                                    <p>Your cart is empty</p>
+                                </div>
+                            </div>
+                            <div class="p-4 border-t">
+                                <div class="flex justify-between mb-2">
+                                    <span>Shipping fee:</span>
+                                    <span id="cartShippingFee">RM0.00</span>
+                                </div>
+                                <div class="flex justify-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <span id="cartSubtotal">RM0.00</span>
+                                </div>
+                                <a href="#" class="block w-full bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700">Checkout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Mobile Search (hidden on desktop) -->
+            <div class="md:hidden py-2">
+                <div class="relative">
+                    <div class="search-box flex items-center border rounded-full overflow-hidden">
+                        <input type="text" placeholder="Search books..."
+                              class="py-2 px-4 w-full focus:outline-none">
+                        <button class="bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Mobile Menu Button -->
+    <div class="md:hidden bg-white border-t border-b py-2 px-4 flex justify-between items-center">
+        <button class="text-gray-800">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+        <div class="text-sm text-gray-600">
+            <a href="#" class="font-medium">Browse Categories</a>
+        </div>
+    </div>
+
+
+    <!-- Breadcrumb -->
+    <div class="bg-white border-b py-4">
+        <div class="container mx-auto px-4">
+            <nav class="text-sm">
+                <ol class="list-none p-0 inline-flex">
+                    <li class="flex items-center">
+                        <a href="index.html" class="text-blue-600 hover:text-blue-800">Home</a>
+                        <span class="mx-2">/</span>
+                    </li>
+                    <li class="flex items-center">
+                        <a href="#" class="text-blue-600 hover:text-blue-800">Categories</a>
+                        <span class="mx-2">/</span>
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-gray-500">Academic</span>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 bg-[url('images/sitebg.gif')] bg-cover bg-center min-h-screen">
+  
+        <div class="flex flex-col md:flex-row gap-8">
+            <aside class="md:w-1/4">
+               
+                <!-- Category List -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-bold mb-4">Categories</h2>
+                    <ul class="space-y-3">
+                        <li><a href="fiction.html" class="text-gray-700 hover:text-blue-800">Fiction</a></li>
+                        <li><a href="#" class="text-blue-600 hover:text-blue-600 font-medium">Acedemic</a></li>
+                        <li><a href="children.html" class="text-gray-700 hover:text-blue-600">Children</a></li>
+                        <li><a href="business.html" class="text-gray-700 hover:text-blue-600">Business</a></li>
+                        <li><a href="foodNdrink.html" class="text-gray-700 hover:text-blue-600">Food & Drink</a></li>
+                        <li><a href="romance.html" class="text-gray-700 hover:text-blue-600">Romance</a></li>
+                    </ul>
+                </div>
+
+                  <br>
+                
+                  <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4">About Acedemic Books</h2>
+                    <p class="text-gray-600 mb-4">
+                        Our academic category features works from distinguished scholars and emerging researchers alike, 
+                        spanning both internationally recognized publications and local contributions. 
+                        Explore groundbreaking studies, well-researched insights, and knowledge that will continue to inform and inspire long after the last page..
+                    </p>
+                  </div>
+            </aside>
+
+
+          
+            <!-- Main Products Section -->
+            <div class="md:w-3/4">
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                        <h1 class="text-2xl font-bold">Acedemic Books</h1>
+                        <div class="flex items-center mt-4 md:mt-0">
+
+                        </div>
+                    </div>
+                  
+                    <p class="text-gray-600 mb-6">Showing 1-6 of 8 results</p>
+                  
+                    <!-- Product Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Book 1 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <img src="bookimg/Xenophon.jpg"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('Xenophone', 'Hellenika', 45.90, 59.90, 'bookimg/Xenophon.jpg', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">Xenophone</h3>
+                                <p class="text-sm text-gray-600 mb-2">Hellenika</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star-half-alt"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.5)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM45.90</span>
+                                    <span class="text-xs text-gray-500 line-through">RM59.90</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 2 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">NEW</span>
+                                <img src="bookimg/ikigai.png"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('ikigai', 'Héctor García', 48.50, 62.00, 'bookimg/ikigai.png', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">Ikigai</h3>
+                                <p class="text-sm text-gray-600 mb-2">Héctor García</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM48.50</span>
+                                    <span class="text-xs text-gray-500 line-through">RM62.00</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 3 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <img src="bookimg/ageofwood.jpg"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('The Age of Wood', 'Roland Ennos', 49.90, 64.90, 'bookimg/ageofwood.jpg', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">The age of Wood</h3>
+                                <p class="text-sm text-gray-600 mb-2">Roland Ennos</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM49.90</span>
+                                    <span class="text-xs text-gray-500 line-through">RM64.90</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 4 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <img src="bookimg/atomicHabits.png"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('Atomic Habits', 'Stefan Petrucha', 52.90, 65.90, 'bookimg/atomicHabits.png', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">Atomic Habits</h3>
+                                <p class="text-sm text-gray-600 mb-2">James Clear</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(5.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM52.90</span>
+                                    <span class="text-xs text-gray-500 line-through">RM65.90</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 5 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">SALE</span>
+                                <img src="bookimg/proposal.png"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('Proposal Book', 'Laura Portwood-Stacer ', 55.20, 69.00, 'bookimg/proposal.png', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">Proposal Book</h3>
+                                <p class="text-sm text-gray-600 mb-2">Laura Portwood-Stacer</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star-half-alt"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.5)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM55.20</span>
+                                    <span class="text-xs text-gray-500 line-through">RM69.00</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 6 -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                            <div class="relative group">
+                                <img src="bookimg/rome.jpg"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('A History Ancient Rome In Twelve Coins', 'Gareth Harney', 47.90, 0, 'bookimg/rome.jpg', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">A History Ancient Rome In Twelve Coins</h3>
+                                <p class="text-sm text-gray-600 mb-2">Gareth Harney</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM47.90</span>
+                                </div>
+                            </div>
+                        </div>
+                      
+                        <!-- Book 7 (Hidden by default) -->
+                          <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all" style="display: none;">
+                          <div class="relative group">
+                              <img src="bookimg/appleChina.png"
+                                  alt="Book Cover"
+                                  class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                              <div class="absolute inset-0 cursor-pointer"
+                                  onclick="openProductModal('Apple in China', 'Patrick Mcgee', 53.90, 65.00, 'bookimg/appleChina.png', 'Physical')"></div>
+                          </div>
+                          <div class="p-4">
+                              <h3 class="font-medium text-gray-900 mb-1">Apple in China</h3>
+                              <p class="text-sm text-gray-600 mb-2">Patrick Mcgee</p>
+                              <div class="flex items-center mb-2">
+                              <div class="flex text-yellow-400 text-sm">
+                                  <i class="fas fa-star"></i>
+                                  <i class="fas fa-star"></i>
+                                  <i class="fas fa-star"></i>
+                                  <i class="fas fa-star"></i>
+                                  <i class="fas fa-star-half-alt"></i>
+                              </div>
+                              <span class="text-gray-500 text-xs ml-1">(4.5)</span>
+                              </div>
+                              <div class="flex justify-between items-center">
+                              <span class="font-bold text-gray-900">RM53.90</span>
+                              <span class="text-xs text-gray-500 line-through">RM65.00</span>
+                              </div>
+                          </div>
+                          </div>
+
+                      
+                        <!-- Book 8 (Hidden by default) -->
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all" style="display: none;">
+                            <div class="relative group">
+                                <img src="bookimg/lightEater.jpg"
+                                    alt="Book Cover" class="w-full h-64 object-cover group-hover:opacity-75 transition-opacity">
+                                <div class="absolute inset-0 cursor-pointer" onclick="openProductModal('Light Eater', 'Zoe Chlanger', 56.50, 68.00, 'bookimg/lightEater.jpg', 'Physical')"></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1">Light Eater</h3>
+                                <p class="text-sm text-gray-600 mb-2">Zoe Chlanger</p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-gray-900">RM56.50</span>
+                                    <span class="text-xs text-gray-500 line-through">RM68.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                  
+                    <!-- Pagination -->
+                    <div class="flex justify-center mt-8">
+                        <nav class="flex items-center space-x-2">
+                            <a href="#" class="px-3 py-1 rounded border text-gray-600 hover:bg-blue-50" onclick="changePage(1); return false;">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            <a href="#" id="page1" class="px-3 py-1 rounded border bg-blue-600 text-white" onclick="changePage(1); return false;">1</a>
+                            <a href="#" id="page2" class="px-3 py-1 rounded border text-gray-600 hover:bg-blue-50" onclick="changePage(2); return false;">2</a>
+                            <a href="#" class="px-3 py-1 rounded border text-gray-600 hover:bg-blue-50" onclick="changePage(2); return false;">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+          
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white pt-12 pb-6">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                <!-- About -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">About Book Heaven</h3>
+                    <p class="text-gray-400 mb-4">We're passionate about books and committed to bringing you the best selection of titles from around the world.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>  
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">New Releases</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Bestsellers</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Promotions</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Customer Service -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Customer Service</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Contact Us</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center">
+                            <i class="fas fa-map-marker-alt mr-2"></i> 123 Book Street, Kuala Lumpur, Malaysia
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-phone-alt mr-2"></i> +603-1234 5678
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope mr-2"></i> hello@bookheaven.com
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-clock mr-2"></i> Mon-Fri: 9am-6pm
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0">© 2025 Book Heaven. All rights reserved.</p>
+                <div class="flex space-x-6">
+                    <a class="text-gray-400 hover:text-white">Privacy Policy</a>
+                    <a class="text-gray-400 hover:text-white">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="relative">
+                <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 z-10">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Product Images -->
+                    <div class="space-y-4">
+                        <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-center h-96">
+                            <img id="modalProductImage" src="" alt="Product" class="h-full object-contain">
+                        </div>
+                    </div>
+                    
+                    <!-- Product Details -->
+                    <div>
+                        <h2 id="modalProductTitle" class="text-2xl font-bold mb-2"></h2>
+                        <p id="modalProductAuthor" class="text-gray-600 mb-4"></p>
+                        
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-gray-500 text-sm ml-2">(4.5) 12 reviews</span>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <span id="modalProductPrice" class="text-2xl font-bold text-gray-900"></span>
+                            <span id="modalProductOldPrice" class="text-sm text-gray-500 line-through ml-2"></span>
+                        </div>
+
+                        <div class="mb-6 text-gray-600">
+                           An insightful academic book that offers a comprehensive exploration of knowledge, fostering critical thinking and deeper understanding of its subject matter.
+                        </div>
+                        
+                        <form id="addToCartForm">
+                            <input type="hidden" id="modalProductId">
+                            
+                            <div class="mb-6">
+                                <h3 class="font-medium mb-2">Format</h3>
+                                <div class="flex space-x-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="format" value="Physical" class="mr-2" checked>
+                                        <span>Physical</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="format" value="E-book" class="mr-2">
+                                        <span>Digital</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h3 class="font-medium mb-2">Quantity</h3>
+                                <div class="flex items-center">
+                                    <button type="button" onclick="changeQuantity(-1)" class="bg-gray-200 px-3 py-1 rounded-l hover:bg-gray-300">-</button>
+                                    <input id="productQuantity" type="number" value="1" min="1" class="border-t border-b border-gray-200 w-12 text-center py-1">
+                                    <button type="button" onclick="changeQuantity(1)" class="bg-gray-200 px-3 py-1 rounded-r hover:bg-gray-300">+</button>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-4">
+                                <button type="button" onclick="addToCart()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 flex-1">
+                                    Add to Cart
+                                </button>
+                                <button type="button" onclick="buyNow()" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 flex-1">
+                                    Buy Now
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Cart data
+        let cartItems = [];
+        let currentProduct = null;
+        let currentPage = 1;
+
+        // Initialize page 1 on load
+        document.addEventListener('DOMContentLoaded', function() {
+            changePage(1);
+            loadCartFromStorage();
+            updateCartDisplay();
+        });
+
+        function toggleCart() {
+            const panel = document.getElementById('cartPanel');
+            panel.classList.toggle('show');
+        }
+
+        // Product Modal Functions
+        function openProductModal(title, author, price, oldPrice, image, format) {
+            currentProduct = {
+                title: title,
+                author: author,
+                price: price,
+                oldPrice: oldPrice,
+                image: image,
+                format: format
+            };
+            
+            document.getElementById('modalProductTitle').textContent = title;
+            document.getElementById('modalProductAuthor').textContent = 'By ' + author;
+            document.getElementById('modalProductPrice').textContent = 'RM' + price.toFixed(2);
+            
+            if (oldPrice && oldPrice > 0) {
+                document.getElementById('modalProductOldPrice').textContent = 'RM' + oldPrice.toFixed(2);
+                document.getElementById('modalProductOldPrice').style.display = 'inline';
+            } else {
+                document.getElementById('modalProductOldPrice').style.display = 'none';
+            }
+            
+            document.getElementById('modalProductImage').src = image;
+            document.getElementById('productQuantity').value = 1;
+            
+            // Set the format radio button based on the book's format
+            const formatRadios = document.getElementsByName('format');
+            for (let radio of formatRadios) {
+                if (radio.value === format) {
+                    radio.checked = true;
+                }
+            }
+            
+            document.getElementById('productModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function changeQuantity(amount) {
+            const quantityInput = document.getElementById('productQuantity');
+            let newValue = parseInt(quantityInput.value) + amount;
+            if (newValue < 1) newValue = 1;
+            quantityInput.value = newValue;
+        }
+
+        function addToCart() {
+            if (!currentProduct) return;
+            
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+            const format = document.querySelector('input[name="format"]:checked').value;
+            
+            // Check if item already in cart
+            const existingItemIndex = cartItems.findIndex(item => 
+                item.title === currentProduct.title && item.format === format
+            );
+            
+            if (existingItemIndex !== -1) {
+                cartItems[existingItemIndex].quantity += quantity;
+            } else {
+                cartItems.push({
+                    title: currentProduct.title,
+                    author: currentProduct.author,
+                    price: currentProduct.price,
+                    image: currentProduct.image,
+                    quantity: quantity,
+                    format: format
+                });
+            }
+            
+            saveCartToStorage();
+            updateCartDisplay();
+            closeModal();
+            
+            // Show success message
+            alert('Item added to cart successfully!');
+        }
+
+        function buyNow() {
+            addToCart();
+            // Redirect to checkout page
+            window.location.href = "#";
+        }
+
+        function removeCartItem(index) {
+            if (confirm('Are you sure you want to remove this item from your cart?')) {
+                cartItems.splice(index, 1);
+                saveCartToStorage();
+                updateCartDisplay();
+            }
+        }
+
+        function updateCartDisplay() {
+            const cartItemsContainer = document.getElementById('cartItems');
+            const cartCount = document.getElementById('cartCount');
+            const cartShippingFee = document.getElementById('cartShippingFee');
+            const cartSubtotal = document.getElementById('cartSubtotal');
+            const cartSubtotalNav = document.getElementById('cartSubtotalNav');
+            
+            let totalItems = 0;
+            let subtotal = 0;
+            
+            cartItems.forEach(item => {
+                totalItems += item.quantity;
+                subtotal += item.price * item.quantity;
+            });
+            
+            const shippingFee = totalItems > 0 ? 5.00 : 0.00;
+            const total = subtotal + shippingFee;
+            
+            // Update cart count
+            cartCount.textContent = totalItems;
+            
+            // Update cart items display
+            if (cartItems.length === 0) {
+                cartItemsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
+                        <p>Your cart is empty</p>
+                    </div>
+                `;
+            } else {
+                let itemsHTML = '';
+                cartItems.forEach((item, index) => {
+                    const itemTotal = item.price * item.quantity;
+                    itemsHTML += `
+                        <div class="cart-item">
+                            <img src="${item.image}" alt="${item.title}">
+                            <div class="cart-item-details">
+                                <div class="font-medium text-sm">${item.title}</div>
+                                <div class="flex justify-between text-xs">
+                                    <span>RM${item.price.toFixed(2)} x ${item.quantity}</span>
+                                    <span class="font-bold">RM${itemTotal.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <button onclick="removeCartItem(${index})" class="text-red-500 ml-2">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                cartItemsContainer.innerHTML = itemsHTML;
+            }
+            
+            // Update totals
+            cartShippingFee.textContent = `RM${shippingFee.toFixed(2)}`;
+            cartSubtotal.textContent = `RM${total.toFixed(2)}`;
+            cartSubtotalNav.textContent = `RM${subtotal.toFixed(2)}`;
+        }
+
+        function saveCartToStorage() {
+            localStorage.setItem('cart', JSON.stringify(cartItems));
+        }
+
+        function loadCartFromStorage() {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                cartItems = JSON.parse(savedCart);
+            }
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            
+            if (page === 1) {
+                // Show first 6 books (indices 0-5)
+                document.querySelectorAll('.book-card').forEach((card, index) => {
+                    card.style.display = index < 6 ? 'block' : 'none';
+                });
+                document.querySelector('p.text-gray-600.mb-6').textContent = 'Showing 1-6 of 8 results';
+                
+                // Update pagination buttons
+                document.getElementById('page1').classList.add('bg-blue-600', 'text-white');
+                document.getElementById('page1').classList.remove('text-gray-600', 'hover:bg-blue-50');
+                document.getElementById('page2').classList.remove('bg-blue-600', 'text-white');
+                document.getElementById('page2').classList.add('text-gray-600', 'hover:bg-blue-50');
+            } else if (page === 2) {
+                // Hide first 6, show next 2 (indices 6-7)
+                document.querySelectorAll('.book-card').forEach((card, index) => {
+                    if (index === 6 || index === 7) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                document.querySelector('p.text-gray-600.mb-6').textContent = 'Showing 7-8 of 8 results';
+                
+                // Update pagination buttons
+                document.getElementById('page2').classList.add('bg-blue-600', 'text-white');
+                document.getElementById('page2').classList.remove('text-gray-600', 'hover:bg-blue-50');
+                document.getElementById('page1').classList.remove('bg-blue-600', 'text-white');
+                document.getElementById('page1').classList.add('text-gray-600', 'hover:bg-blue-50');
+            }
+        }
+
+        // Close the dropdown if clicked outside
+        window.onclick = function(event) {
+            // Close product modal
+            if (event.target === document.getElementById('productModal')) {
+                closeModal();
+            }
+            
+            // Close cart panel if clicking outside
+            if (!event.target.closest('#cartPanel') && !event.target.closest('.fa-shopping-cart')) {
+                document.getElementById('cartPanel').classList.remove('show');
+            }
+        };
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
