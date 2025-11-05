@@ -59,26 +59,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
     </section>
 
     <!-- Story Section -->
-    <section class="bg-blue-800 py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div data-aos="fade-right">
-                    <h2 class="text-3xl font-bold text-white mb-6">Our Story</h2>
-                    <p class="text-white mb-4">
-                        Founded in 2025, Book Heaven started as a small independent bookstore with a passion for connecting readers with exceptional literature. It is a simple cozy corner shop that wishes to blossom into a beloved community hub for book lovers.
-                    </p>
-                    <p class="text-white mb-4">
-                        Our journey is still new and fueled by a deep love for storytelling and a commitment to fostering a culture of reading. Over countless hurdles, we've grown our collection to include over many titles spanning all genres and age groups.
-                    </p>
-                    <p class="text-white">
-                        Today, Book Heaven stands as a testament to the enduring power of books to inspire, educate, and transform lives. We continue to curate our collection with the same care and dedication that marked our humble beginnings.
-                    </p>
-                </div>
-                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80"
-                    alt="Library" class="rounded-lg shadow-xl w-full">
-            </div>
-        </div>
-    </section>
+    
 
     <!-- Mission Section -->
     <section class="py-16 bg-white">
@@ -332,5 +313,6 @@ $username = $logged_in ? $_SESSION['name'] : '';
         feather.replace();
     </script>
 </body>
+
 
 </html>
