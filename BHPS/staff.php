@@ -1150,7 +1150,21 @@ function getStatusClass($status)
     }
 }
 
+function getStockClass($quantity)
+{
+    if ($quantity == 0) return 'bg-red-100 text-red-800';
+    if ($quantity < 10) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-green-100 text-green-800';
+}
+
+function getStockText($quantity)
+{
+    if ($quantity == 0) return 'Out of Stock';
+    if ($quantity < 10) return 'Low Stock: ' . $quantity;
+    return 'In Stock: ' . $quantity;
+}
 
 $conn->close();
 
 ?>
+
