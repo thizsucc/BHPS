@@ -5,9 +5,9 @@ if (isset($_POST['cart'])) {
     $cart = json_decode($_POST['cart'], true);
     if (is_array($cart)) {
         $_SESSION['cart'] = $cart;
-        echo 'OK';
+        echo json_encode(['success' => true, 'cart' => $_SESSION['cart']]);
         exit;
     }
 }
-echo 'ERROR';
+echo json_encode(['success' => false]);
 exit;

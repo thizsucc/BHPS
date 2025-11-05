@@ -6,19 +6,18 @@ if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || !isset($_SESSION[
 }
 include 'db_connect.php';
 
-// Get current user ID from session - KEEP AS STRING
-$user_id = isset($_SESSION['userID']) ? $_SESSION['userID'] : null;
+$user_id = $_SESSION['userID'] ?? null;
 
 // Handle cancel order POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order_id'])) {
     $cancel_order_id = intval($_POST['cancel_order_id']);
-    // Only allow cancel if order belongs to user and is not already completed/cancelled
     $stmt = $conn->prepare("SELECT Status FROM `order` WHERE OrderID = ? AND User_ID = ?");
-    $stmt->bind_param("is", $cancel_order_id, $user_id); // Changed to "is" (integer, string)
+    $stmt->bind_param("is", $cancel_order_id, $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
+
     if ($row = $result->fetch_assoc()) {
-        if (strtolower($row['Status']) !== 'completed' && strtolower($row['Status']) !== 'cancelled') {
+        if (!in_array(strtolower($row['Status']), ['completed', 'cancelled'])) {
             $update = $conn->prepare("UPDATE `order` SET Status = 'Cancelled' WHERE OrderID = ?");
             $update->bind_param("i", $cancel_order_id);
             $update->execute();
@@ -26,34 +25,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order_id'])) {
         }
     }
     $stmt->close();
-    // Refresh to show updated status
     header("Location: order_user.php");
     exit();
 }
 
-// Fetch user's orders - FIXED PARAMETER BINDING
-if ($user_id) {
-    $stmt = $conn->prepare("
-        SELECT o.OrderID, o.BookID, o.order_date, o.address, o.Quantity, o.Status, o.Total_Amount, o.User_ID, b.Name as book_name, b.ImagePath, b.Author
-        FROM `order` o 
-        LEFT JOIN book b ON o.BookID = b.BookID 
-        WHERE o.User_ID = ? 
-        ORDER BY o.order_date DESC
-    ");
-    $stmt->bind_param("s", $user_id); // CHANGED TO "s" FOR STRING
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $orders = $result->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
-} else {
-    $orders = [];
+$stmt = $conn->prepare("
+    SELECT 
+        o.OrderID,
+        o.order_date,
+        o.address,
+        o.Quantity,
+        o.Status,
+        o.Total_Amount,
+        o.User_ID,
+        o.payment_method,
+        o.card_number,
+        o.bank_name,
+        b.BookID,
+        b.Name AS book_name,
+        b.ImagePath,
+        b.Author
+    FROM `order` o
+    LEFT JOIN book b ON o.BookID = b.BookID
+    WHERE o.User_ID = ?
+    ORDER BY o.order_date DESC
+");
+$stmt->bind_param("s", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$rows = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// ✅ Group books by OrderID
+$groupedOrders = [];
+foreach ($rows as $row) {
+    $oid = $row['OrderID'];
+    if (!isset($groupedOrders[$oid])) {
+        $groupedOrders[$oid] = [
+            'OrderID' => $oid,
+            'order_date' => $row['order_date'],
+            'address' => $row['address'],
+            'Quantity' => $row['Quantity'],
+            'Status' => $row['Status'],
+            'Total_Amount' => $row['Total_Amount'],
+            'User_ID' => $row['User_ID'],
+            'payment_method' => $row['payment_method'],
+            'card_number' => $row['card_number'],
+            'bank_name' => $row['bank_name'],
+            'books' => []
+        ];
+    }
+
+    // add book
+    $groupedOrders[$oid]['books'][] = [
+        'BookID' => $row['BookID'],
+        'book_name' => $row['book_name'],
+        'ImagePath' => $row['ImagePath'],
+        'Author' => $row['Author']
+    ];
 }
 
+function maskCardNumber($cardNumber)
+{
+    if (!$cardNumber || strlen($cardNumber) < 8) return "**** **** **** ****";
+    return substr($cardNumber, 0, 4) . str_repeat('*', strlen($cardNumber) - 8) . substr($cardNumber, -4);
+}
+
+$orders = array_values($groupedOrders);
 $logged_in = isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true;
 $username = $logged_in ? $_SESSION['name'] : '';
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,85 +110,132 @@ $username = $logged_in ? $_SESSION['name'] : '';
             display: none;
             position: absolute;
             background-color: white;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             z-index: 1;
         }
+
         .dropdown-menu.show {
             display: block;
         }
+
         .dropdown-menu a {
             color: black;
             padding: 12px 16px;
             text-decoration: none;
             display: block;
         }
+
         .dropdown-menu a:hover {
             background-color: #f1f1f1;
         }
+
         .rotate-180 {
             transform: rotate(180deg);
         }
+
         .search-box:focus-within {
             border-color: #3b82f6;
         }
+
+        .order-status {
+            position: relative;
+            display: inline-block;
+        }
+
+        .order-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+        }
+
         .user-menu {
             display: none;
             position: absolute;
             right: 0;
             background-color: white;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             z-index: 1;
             min-width: 160px;
             border-radius: 4px;
         }
+
         .user-menu.show {
             display: block;
         }
+
         .action-panel {
             display: none;
             position: absolute;
             right: 0;
             background-color: white;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             z-index: 1;
             width: 320px;
             border-radius: 4px;
             max-height: 400px;
             overflow-y: auto;
         }
+
         .action-panel.show {
             display: block;
         }
+
         .cart-item {
             display: flex;
             align-items: center;
             padding: 10px;
             border-bottom: 1px solid #eee;
         }
+
         .cart-item img {
             width: 50px;
             height: 70px;
             object-fit: cover;
             margin-right: 10px;
         }
+
         .cart-item-details {
             flex-grow: 1;
         }
+
         .empty-state {
             padding: 20px;
             text-align: center;
             color: #6b7280;
         }
+
         .status-badge {
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
         }
-        .status-processing { background: #fff3cd; color: #856404; }
-        .status-completed { background: #d1edff; color: #004085; }
-        .status-shipped { background: #d4edda; color: #155724; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
+
+        .status-processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d1edff;
+            color: #004085;
+        }
+
+        .status-shipped {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
         .order-card {
             background: white;
             border-radius: 12px;
@@ -153,7 +245,13 @@ $username = $logged_in ? $_SESSION['name'] : '';
         }
     </style>
 </head>
+
 <body class="bg-gray-50">
+    <!-- Top Announcement Bar -->
+    <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
+        🎉 Special Promotion! Limited time offers on selected books 🎉 | Free shipping on orders over RM200
+    </div>
+
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4">
@@ -170,8 +268,8 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 <div class="hidden md:flex flex-1 mx-8">
                     <div class="relative w-full max-w-xl">
                         <div class="search-box flex items-center border rounded-full overflow-hidden">
-                            <input type="text" placeholder="Search books, authors, ISBN..." 
-                                   class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;">
+                            <input type="text" placeholder="Search books, authors, ISBN..."
+                                class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;">
                             <button class="bg-blue-600 text-white px-6 py-2 hover:bg-blue-700">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -193,7 +291,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                                 <a href="logout.php" class="block px-4 py-2 hover:bg-gray-100">Logout</a>
                             </div>
                         </div>
-                        
+
                         <!-- Cart Icon with Subtotal -->
                         <div class="relative flex items-center space-x-2">
                             <div class="text-right">
@@ -240,8 +338,8 @@ $username = $logged_in ? $_SESSION['name'] : '';
             <div class="md:hidden py-2">
                 <div class="relative">
                     <div class="search-box flex items-center border rounded-full overflow-hidden">
-                        <input type="text" placeholder="Search books..." 
-                               class="py-2 px-4 w-full focus:outline-none">
+                        <input type="text" placeholder="Search books..."
+                            class="py-2 px-4 w-full focus:outline-none">
                         <button class="bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">
                             <i class="fas fa-search"></i>
                         </button>
@@ -258,8 +356,8 @@ $username = $logged_in ? $_SESSION['name'] : '';
                         </button>
                         <div id="categoriesDropdown" class="dropdown-menu absolute bg-white shadow-lg rounded mt-2 w-48 z-50">
                             <a href="fiction.php" class="block px-4 py-2 hover:bg-gray-100">Fiction</a>
-                            <a href="children.php" class="block px-4 py-2 hover:bg-gray-100">Children</a>
                             <a href="academic.php" class="block px-4 py-2 hover:bg-gray-100">Academic</a>
+                            <a href="children.php" class="block px-4 py-2 hover:bg-gray-100">Children</a>
                             <a href="business.php" class="block px-4 py-2 hover:bg-gray-100">Business</a>
                             <a href="foodNdrink.php" class="block px-4 py-2 hover:bg-gray-100">Food & Drink</a>
                             <a href="romance.php" class="block px-4 py-2 hover:bg-gray-100">Romance</a>
@@ -267,7 +365,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                     </li>
                     <li><a href="newRelease.php" class="text-gray-800 hover:text-blue-600 font-medium">New Releases</a></li>
                     <li><a href="bestseller.php" class="text-gray-800 hover:text-blue-600 font-medium">Bestsellers</a></li>
-                    <li><a href="about.html" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
+                    <li><a href="about.php" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
                 </ul>
             </nav>
         </div>
@@ -286,9 +384,9 @@ $username = $logged_in ? $_SESSION['name'] : '';
     <main class="container mx-auto px-4 py-8">
         <div class="max-w-6xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
-            
+
             <?php if (empty($orders)): ?>
-                <div class="order-card text-center">
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden text-center py-16">
                     <div class="py-12">
                         <i class="fas fa-shopping-bag text-6xl text-gray-300 mb-4"></i>
                         <h2 class="text-2xl font-bold text-gray-700 mb-4">No Orders Yet</h2>
@@ -300,56 +398,148 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 </div>
             <?php else: ?>
                 <?php foreach ($orders as $order): ?>
-                <div class="order-card">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 pb-4 border-b border-gray-200">
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-900">Order #<?php echo $order['OrderID']; ?></h2>
-                            <p class="text-gray-600">Placed on <?php echo date('F j, Y g:i A', strtotime($order['order_date'])); ?></p>
-                            <p class="text-sm text-gray-500">User ID: <?php echo $order['User_ID']; ?></p>
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                        <!-- Order Header -->
+                        <div class="bg-blue-800 text-white p-6">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                                <div>
+                                    <h2 class="text-2xl font-bold">Order #<?php echo $order['OrderID']; ?></h2>
+                                    <p class="text-blue-200 mt-1">Placed on <?php echo date('F j, Y g:i A', strtotime($order['order_date'])); ?></p>
+                                    <p class="text-blue-200">Items: <?php echo count($order['books']); ?> item(s)</p>
+                                </div>
+                                <div class="mt-4 md:mt-0">
+                                    <?php
+                                    $statusClass = '';
+                                    switch (strtolower($order['Status'])) {
+                                        case 'processing':
+                                            $statusClass = 'bg-yellow-500';
+                                            break;
+                                        case 'completed':
+                                            $statusClass = 'bg-green-600';
+                                            break;
+                                        case 'shipped':
+                                            $statusClass = 'bg-blue-600';
+                                            break;
+                                        case 'cancelled':
+                                            $statusClass = 'bg-red-600';
+                                            break;
+                                        default:
+                                            $statusClass = 'bg-gray-600';
+                                    }
+                                    ?>
+                                    <span class="order-status <?php echo $statusClass; ?> text-white px-4 py-2 rounded-full text-sm font-medium">
+                                        <?php echo $order['Status']; ?>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mt-2 md:mt-0 flex items-center space-x-2">
-                            <span class="status-badge status-<?php echo strtolower($order['Status']); ?>">
-                                <?php echo $order['Status']; ?>
-                            </span>
-                            <?php if (strtolower($order['Status']) !== 'completed' && strtolower($order['Status']) !== 'cancelled'): ?>
-                                <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="cancel_order_id" value="<?php echo $order['OrderID']; ?>">
-                                    <button type="submit" class="ml-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-xs font-semibold" onclick="return confirm('Are you sure you want to cancel this order?');">Cancel Order</button>
-                                </form>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <h3 class="font-medium text-gray-900 mb-2">Shipping Address</h3>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($order['address']); ?></p>
-                        </div>
-                        <div>
-                            <h3 class="font-medium text-gray-900 mb-2">Order Details</h3>
-                            <div class="space-y-1">
-                                <p class="text-gray-600">Total Amount: <span class="font-bold">RM <?php echo number_format($order['Total_Amount'], 2); ?></span></p>
-                                <p class="text-gray-600">Quantity: <?php echo $order['Quantity']; ?> item(s)</p>
-                                <p class="text-gray-600">Book ID: <?php echo $order['BookID']; ?></p>
+
+                        <!-- Order Information -->
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <!-- Shipping Address -->
+                                <div class="bg-gray-50 p-6 rounded-lg">
+                                    <h3 class="font-bold text-lg mb-4 flex items-center">
+                                        <i class="fas fa-map-marker-alt text-blue-600 mr-3"></i>
+                                        Shipping Address
+                                    </h3>
+                                    <div class="space-y-2">
+                                        <p class="text-gray-700"><?php echo htmlspecialchars($order['address']); ?></p>
+                                    </div>
+                                </div>
+
+                                <!-- Order Information -->
+                                <div class="bg-gray-50 p-6 rounded-lg">
+                                    <h3 class="font-bold text-lg mb-4 flex items-center">
+                                        <i class="fas fa-info-circle text-blue-600 mr-3"></i>
+                                        Order Information
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <p class="font-medium">Total Amount: <span class="font-normal text-gray-700">RM <?php echo number_format($order['Total_Amount'], 2); ?></span></p>
+                                        <p class="font-medium">Total Quantity: <span class="font-normal text-gray-700"><?php echo count($order['books']); ?> item(s)</span></p>
+                                        <p class="font-medium">Payment Method: <span class="font-normal text-gray-700"><?php echo htmlspecialchars($order['payment_method'] ?? 'N/A'); ?></span></p>
+                                        <?php if (isset($order['payment_method']) && $order['payment_method'] === 'card' && !empty($order['card_number'])): ?>
+                                            <p class="font-medium">Card: <span class="font-normal text-gray-700">****<?php echo substr($order['card_number'], -4); ?></span></p>
+                                        <?php elseif (isset($order['payment_method']) && $order['payment_method'] === 'bank' && !empty($order['bank_name'])): ?>
+                                            <p class="font-medium">Bank: <span class="font-normal text-gray-700"><?php echo htmlspecialchars($order['bank_name']); ?></span></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="mb-8">
+                                <h3 class="font-bold text-lg mb-4">Order Items (<?php echo count($order['books']); ?> item<?php echo count($order['books']) > 1 ? 's' : ''; ?>)</h3>
+                                <div class="border rounded-lg overflow-hidden">
+                                    <?php foreach ($order['books'] as $book): ?>
+                                        <div class="flex flex-col md:flex-row items-start p-6 border-b last:border-b-0 bg-white hover:bg-gray-50 transition duration-150">
+                                            <?php if (!empty($book['ImagePath'])): ?>
+                                                <div class="w-full md:w-1/4 mb-4 md:mb-0">
+                                                    <img src="<?php echo htmlspecialchars($book['ImagePath']); ?>"
+                                                        alt="<?php echo htmlspecialchars($book['book_name']); ?>"
+                                                        class="w-full h-48 object-contain rounded-lg shadow-sm">
+                                                </div>
+                                            <?php endif; ?>
+                                            <div class="w-full md:w-3/4 md:pl-6">
+                                                <h4 class="font-semibold text-xl text-gray-800 mb-2"><?php echo htmlspecialchars($book['book_name'] ?? 'Book #' . $book['BookID']); ?></h4>
+                                                <?php if (!empty($book['Author'])): ?>
+                                                    <p class="text-gray-600 mb-3"><?php echo htmlspecialchars($book['Author']); ?></p>
+                                                <?php endif; ?>
+                                                <p class="text-gray-500 text-sm">Book ID: <?php echo $book['BookID']; ?></p>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div class="bg-gray-50 p-6 rounded-lg mb-8">
+                                <h3 class="font-bold text-lg mb-4">Order Summary</h3>
+                                <div class="space-y-3">
+                                    <?php foreach ($order['books'] as $book): ?>
+                                        <div class="flex justify-between py-2">
+                                            <span class="text-gray-700"><?php echo htmlspecialchars($book['book_name'] ?? 'Book #' . $book['BookID']); ?></span>
+                                            <span class="font-medium">RM<?php echo number_format($order['Total_Amount'] / count($order['books']), 2); ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                    <div class="flex justify-between font-bold text-lg pt-4 border-t border-gray-300 mt-2">
+                                        <span class="text-gray-900">Total</span>
+                                        <span class="text-gray-900">RM<?php echo number_format($order['Total_Amount'], 2); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row justify-between gap-4">
+                                <a href="index.php" class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">
+                                    <i class="fas fa-arrow-left mr-2"></i>
+                                    Continue Shopping
+                                </a>
+
+                                <div class="flex flex-col sm:flex-row gap-4">
+                                    <!-- Receipt Button -->
+                                    <a href="receipt.php?order_id=<?php echo $order['OrderID']; ?>"
+                                        class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                                        <i class="fas fa-receipt mr-2"></i>
+                                        View Receipt
+                                    </a>
+
+                                    <?php if (strtolower($order['Status']) !== 'completed' && strtolower($order['Status']) !== 'cancelled'): ?>
+                                        <!-- Cancel Button -->
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="cancel_order_id" value="<?php echo $order['OrderID']; ?>">
+                                            <button type="submit"
+                                                class="inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200"
+                                                onclick="return confirm('Are you sure you want to cancel this order?');">
+                                                <i class="fas fa-times-circle mr-2"></i>
+                                                Cancel Order
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="border-t border-gray-200 pt-6">
-                        <h3 class="font-medium text-gray-900 mb-4">Order Items</h3>
-                        <div class="flex items-center space-x-4">
-                            <?php if (!empty($order['ImagePath'])): ?>
-                                <img src="<?php echo htmlspecialchars($order['ImagePath']); ?>" alt="<?php echo htmlspecialchars($order['book_name']); ?>" class="w-16 h-20 object-cover rounded">
-                            <?php endif; ?>
-                            <div class="flex-1">
-                                <h4 class="font-medium text-gray-900"><?php echo htmlspecialchars($order['book_name'] ?? 'Book #' . $order['BookID']); ?></h4>
-                                <p class="text-gray-600">Quantity: <?php echo $order['Quantity']; ?></p>
-                                <p class="text-gray-600">Price: RM <?php echo number_format($order['Total_Amount'] / $order['Quantity'], 2); ?> each</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-gray-900">RM <?php echo number_format($order['Total_Amount'], 2); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
@@ -376,9 +566,9 @@ $username = $logged_in ? $_SESSION['name'] : '';
                         <a href="#" class="text-gray-400 hover:text-white">
                             <i class="fab fa-youtube"></i>
                         </a>
-                    </div>  
+                    </div>
                 </div>
-                
+
                 <!-- Quick Links -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
@@ -388,7 +578,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                         <li><a href="bestseller.php" class="text-gray-400 hover:text-white">Bestsellers</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Customer Service -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
@@ -397,7 +587,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                         <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Contact -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Contact Us</h3>
@@ -417,7 +607,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                     </ul>
                 </div>
             </div>
-            
+
             <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
                 <p class="text-gray-400 mb-4 md:mb-0">© 2025 Book Heaven. All rights reserved.</p>
                 <div class="flex space-x-6">
@@ -430,6 +620,11 @@ $username = $logged_in ? $_SESSION['name'] : '';
 
     <script>
         // Header functionality
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
         function toggleDropdown() {
             const dropdown = document.getElementById('categoriesDropdown');
             const icon = document.getElementById('dropdownIcon');
@@ -437,11 +632,6 @@ $username = $logged_in ? $_SESSION['name'] : '';
             icon.classList.toggle('rotate-180');
         }
 
-        function toggleUserMenu() {
-            const dropdown = document.getElementById('userDropdown');
-            dropdown.classList.toggle('show');
-        }
-        
         function toggleCart() {
             const panel = document.getElementById('cartPanel');
             panel.classList.toggle('show');
@@ -453,37 +643,38 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 const dropdowns = document.getElementsByClassName("dropdown-menu");
                 const userDropdowns = document.getElementsByClassName("user-menu");
                 const actionPanels = document.getElementsByClassName("action-panel");
-                const icons = document.getElementsByClassName("fas fa-chevron-down");
-                
+
                 for (let i = 0; i < dropdowns.length; i++) {
                     const openDropdown = dropdowns[i];
                     if (openDropdown.classList.contains('show')) {
                         openDropdown.classList.remove('show');
                     }
                 }
-                
+
                 for (let i = 0; i < userDropdowns.length; i++) {
                     const openDropdown = userDropdowns[i];
                     if (openDropdown.classList.contains('show')) {
                         openDropdown.classList.remove('show');
                     }
                 }
-                
+
                 for (let i = 0; i < actionPanels.length; i++) {
                     const openPanel = actionPanels[i];
                     if (openPanel.classList.contains('show')) {
                         openPanel.classList.remove('show');
                     }
                 }
-                
+
+                // Remove rotate-180 from icons
+                const icons = document.getElementsByClassName("fas fa-chevron-down");
                 for (let i = 0; i < icons.length; i++) {
-                    const icon = icons[i];
-                    if (icon.classList.contains('rotate-180')) {
-                        icon.classList.remove('rotate-180');
+                    if (icons[i].classList.contains('rotate-180')) {
+                        icons[i].classList.remove('rotate-180');
                     }
                 }
             }
         }
     </script>
 </body>
+
 </html>

@@ -19,23 +19,28 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $where = '';
 if (!empty($search)) {
-    $where = " WHERE (Name LIKE '%$search%' OR Author LIKE '%$search%' OR BookID LIKE '%$search%' OR Category LIKE '%$search%')";
+    $where = " WHERE is_promotion = 1 AND (Name LIKE '%$search%' OR Author LIKE '%$search%' OR BookID LIKE '%$search%' OR Category LIKE '%$search%')";
+} else {
+    $where = " WHERE is_promotion = 1";
 }
 
-// Fetch last 10 books (most recently added) with search filter
-$new_release_books = [];
-$query = "SELECT * FROM book $where ORDER BY BookID DESC LIMIT 10";
-$result = $conn->query($query);
+// Fetch promotion books
+$promotion_books = [];
+$sql = "SELECT * FROM book $where ORDER BY BookID DESC";
+$result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $new_release_books[] = $row;
+        $promotion_books[] = $row;
     }
 }
 
-// Latest 10 book IDs for NEW badge (all are new releases)
+// Latest 10 book IDs for NEW badge
 $latest_book_ids = [];
-foreach ($new_release_books as $book) {
-    $latest_book_ids[] = $book['BookID'];
+$latestRes = $conn->query("SELECT BookID FROM book ORDER BY BookID DESC LIMIT 10");
+if ($latestRes) {
+    while ($r = $latestRes->fetch_assoc()) {
+        $latest_book_ids[] = $r['BookID'];
+    }
 }
 
 // Handle add to cart
@@ -52,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
 
     // Find the book in database
     $book_result = $conn->query("SELECT * FROM book WHERE BookID = '$book_id'");
-    if ($book_result && $book_result->num_rows > 0) {
+    if ($book_result->num_rows > 0) {
         $book = $book_result->fetch_assoc();
 
         // Use promotion price if available
@@ -128,7 +133,7 @@ unset($_SESSION['error']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Releases - Book Heaven</title>
+    <title>Promotion Books - Book Heaven</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -252,6 +257,24 @@ unset($_SESSION['error']);
             overflow-y: auto;
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
         }
+
+        .promotion-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            font-weight: bold;
+        }
+
+        .price-original {
+            text-decoration: line-through;
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        .price-promotion {
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 
@@ -278,7 +301,7 @@ unset($_SESSION['error']);
                     <div class="relative w-full max-w-xl">
                         <form method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
                             <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
-                                placeholder="Search new releases..."
+                                placeholder="Search promotion books..."
                                 class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;">
                             <button type="submit" class="bg-blue-600 text-white px-6 py-2 hover:bg-blue-700">
                                 <i class="fas fa-search"></i>
@@ -333,7 +356,7 @@ unset($_SESSION['error']);
                                                         <span class="font-bold">RM<?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
                                                     </div>
                                                 </div>
-                                                <button onclick="removeFromCart('<?php echo $item['book_id']; ?>', '<?php echo $item['format']; ?>')" class="text-red-500 ml-2">
+                                                <button onclick="removeCartItem(<?php echo $index; ?>)" class="text-blue-500 ml-2">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -367,7 +390,7 @@ unset($_SESSION['error']);
                 <div class="relative">
                     <form method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
                         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
-                            placeholder="Search new releases..."
+                            placeholder="Search promotion books..."
                             class="py-2 px-4 w-full focus:outline-none">
                         <button type="submit" class="bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">
                             <i class="fas fa-search"></i>
@@ -391,9 +414,9 @@ unset($_SESSION['error']);
                             <a href="foodNdrink.php" class="block px-4 py-2 hover:bg-gray-100">Food & Drink</a>
                         </div>
                     </li>
-                    <li><a href="newRelease.php" class="text-blue-600 hover:text-blue-800 font-medium">New Releases</a></li>
+                    <li><a href="newRelease.php" class="text-gray-800 hover:text-blue-600 font-medium">New Releases</a></li>
                     <li><a href="bestseller.php" class="text-gray-800 hover:text-blue-600 font-medium">Bestsellers</a></li>
-                    <li><a href="promotion.php" class="text-gray-600 hover:text-blue-800 font-medium">Promotions</a></li>
+                    <li><a href="promotion.php" class="text-blue-600 hover:text-blue-800 font-medium">Promotions</a></li>
                     <li><a href="about.html" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
                 </ul>
             </nav>
@@ -410,7 +433,7 @@ unset($_SESSION['error']);
                         <span class="mx-2">/</span>
                     </li>
                     <li class="flex items-center">
-                        <span class="text-gray-500">New Releases</span>
+                        <span class="text-gray-500">Promotions</span>
                     </li>
                 </ol>
             </nav>
@@ -434,10 +457,10 @@ unset($_SESSION['error']);
 
     <?php if ($error_message): ?>
         <div class="container mx-auto px-4 mt-6">
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <div class="bg-red-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative" role="alert">
                 <span class="block sm:inline"><?php echo $error_message; ?></span>
                 <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
-                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <svg class="fill-current h-6 w-6 text-blue-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                         <title>Close</title>
                         <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                     </svg>
@@ -450,15 +473,7 @@ unset($_SESSION['error']);
     <main class="container mx-auto px-4 py-8" id="books-section">
         <div class="flex flex-col md:flex-row gap-8">
             <aside class="md:w-1/4">
-                <!-- About New Releases -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4">About New Releases</h2>
-                    <p class="text-gray-600">
-                        Discover the latest titles added by our staff across all categories. Check back often for fresh picks!
-                    </p>
-                </div>
-
-                <!-- Categories List -->
+                <!-- Category List -->
                 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <h2 class="text-xl font-bold mb-4">Categories</h2>
                     <ul class="space-y-3">
@@ -470,15 +485,28 @@ unset($_SESSION['error']);
                         <li><a href="romance.php" class="text-gray-700 hover:text-blue-600">Romance</a></li>
                     </ul>
                 </div>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h2 class="text-xl font-bold mb-4">About Promotions</h2>
+                    <p class="text-gray-600 mb-4">
+                        Discover amazing deals on our specially selected books! Our promotion section features
+                        limited-time offers with significant discounts.
+                    </p>
+                    <p class="text-gray-600">
+                        Don't miss out on these great savings. Stock is limited, so grab your favorite books
+                        at these special prices while they last!
+                    </p>
+                </div>
+
             </aside>
 
             <!-- Main Products Section -->
             <div class="md:w-3/4">
                 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                        <h1 class="text-2xl font-bold">New Releases</h1>
+                        <h1 class="text-2xl font-bold">Promotion Books</h1>
                         <div class="flex items-center mt-4 md:mt-0">
-                            <span class="text-gray-600">Showing <?php echo count($new_release_books); ?> results</span>
+                            <span class="text-gray-600">Showing <?php echo count($promotion_books); ?> results</span>
                         </div>
                     </div>
 
@@ -486,33 +514,27 @@ unset($_SESSION['error']);
                         <div class="mb-4 p-4 bg-blue-50 rounded-lg">
                             <p class="text-blue-800">
                                 Search results for: "<strong><?php echo htmlspecialchars($search); ?></strong>"
-                                <a href="newRelease.php" class="text-blue-600 hover:underline ml-4">Clear search</a>
+                                <a href="promotion.php" class="text-blue-600 hover:underline ml-4">Clear search</a>
                             </p>
                         </div>
                     <?php endif; ?>
 
                     <!-- Product Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <?php foreach ($new_release_books as $book):
-                            // Check if book is in promotion
-                            $is_promotion = $book['is_promotion'] && $book['promotion_price'];
-                            $display_price = $is_promotion ? $book['promotion_price'] : $book['Price'];
-                            $original_price = $is_promotion ? $book['Price'] : null;
-                            $discount = $is_promotion ? round((($book['Price'] - $book['promotion_price']) / $book['Price']) * 100) : 0;
-                        ?>
+                        <?php foreach ($promotion_books as $book): ?>
                             <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden"
                                 onclick="openProductModal('<?php echo addslashes($book['BookID']); ?>')">
                                 <div class="relative">
-                                    <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">NEW</span>
-                                    <?php if ($is_promotion): ?>
-                                        <span class="absolute top-2 left-14 bg-red-600 text-white text-xs px-2 py-1 rounded">PROMOTION</span>
+                                    <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">PROMOTION</span>
+                                    <?php if (in_array($book['BookID'], $latest_book_ids)): ?>
+                                        <span class="absolute top-2 left-24 bg-red-600 text-white text-xs px-2 py-1 rounded">NEW</span>
                                     <?php endif; ?>
                                     <img src="<?php echo $book['ImagePath'] ?: 'default-book.jpg'; ?>"
                                         alt="Book Cover" class="w-full h-64 object-cover">
                                     <?php if ($book['Quantity'] < 10 && $book['Quantity'] > 0): ?>
                                         <span class="absolute top-2 right-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">Low Stock</span>
                                     <?php elseif ($book['Quantity'] == 0): ?>
-                                        <span class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">Out of Stock</span>
+                                        <span class="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">Out of Stock</span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="p-4">
@@ -530,16 +552,15 @@ unset($_SESSION['error']);
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div>
-                                            <span class="<?php echo $is_promotion ? 'text-red-600 font-bold text-lg' : 'font-bold text-gray-900'; ?>">
-                                                RM<?php echo number_format($display_price, 2); ?>
-                                            </span>
-                                            <?php if ($is_promotion && $original_price): ?>
-                                                <span class="text-gray-500 text-sm line-through ml-2">RM<?php echo number_format($original_price, 2); ?></span>
-                                            <?php endif; ?>
+                                            <span class="price-promotion">RM<?php echo number_format($book['promotion_price'], 2); ?></span>
+                                            <span class="price-original ml-2">RM<?php echo number_format($book['Price'], 2); ?></span>
                                         </div>
                                         <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Format']); ?></span>
                                     </div>
-                                    <?php if ($is_promotion && $discount > 0): ?>
+                                    <?php
+                                    $discount = round((($book['Price'] - $book['promotion_price']) / $book['Price']) * 100);
+                                    if ($discount > 0):
+                                    ?>
                                         <div class="mt-2">
                                             <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Save <?php echo $discount; ?>%</span>
                                         </div>
@@ -548,12 +569,12 @@ unset($_SESSION['error']);
                             </div>
                         <?php endforeach; ?>
 
-                        <?php if (empty($new_release_books)): ?>
+                        <?php if (empty($promotion_books)): ?>
                             <div class="col-span-3 text-center py-8">
-                                <i class="fas fa-book-open text-4xl text-gray-400 mb-4"></i>
-                                <p class="text-gray-500">No new releases found<?php echo !empty($search) ? ' matching your search' : ''; ?>.</p>
+                                <i class="fas fa-tag text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-500">No promotion books found<?php echo !empty($search) ? ' matching your search' : ''; ?>.</p>
                                 <?php if (!empty($search)): ?>
-                                    <a href="newRelease.php" class="text-blue-600 hover:underline mt-2 inline-block">Browse all new releases</a>
+                                    <a href="promotion.php" class="text-blue-600 hover:underline mt-2 inline-block">Browse all promotions</a>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -595,9 +616,8 @@ unset($_SESSION['error']);
                         </div>
 
                         <div class="mb-6">
-                            <div id="modalProductPromotionPrice" class="text-2xl font-bold text-gray-900"></div>
+                            <div id="modalProductPromotionPrice" class="text-2xl font-bold text-black-600"></div>
                             <div id="modalProductOriginalPrice" class="text-sm text-gray-500 line-through"></div>
-                            <div id="modalProductDiscount" class="text-sm text-green-600 mt-1"></div>
                         </div>
 
                         <div id="modalProductDescription" class="mb-6 text-gray-600">
@@ -660,8 +680,8 @@ unset($_SESSION['error']);
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
                     <ul class="space-y-2">
                         <li><a href="index.php" class="text-gray-400 hover:text-white">Home</a></li>
-                        <li><a href="newRelease.php" class="text-gray-400 hover:text-white">New Releases</a></li>
-                        <li><a href="bestseller.php" class="text-gray-400 hover:text-white">Bestsellers</a></li>
+                        <li><a href="fiction.php" class="text-gray-400 hover:text-white">Fiction</a></li>
+                        <li><a href="promotion.php" class="text-gray-400 hover:text-white">Promotions</a></li>
                     </ul>
                 </div>
 
@@ -727,7 +747,7 @@ unset($_SESSION['error']);
             panel.classList.toggle('show');
         }
 
-        // Product Modal Functions with DEBUGGING
+        // Product Modal Functions
         function openProductModal(bookId) {
             console.log('Opening modal for book ID:', bookId);
 
@@ -766,36 +786,24 @@ unset($_SESSION['error']);
                     // Handle pricing display for promotion
                     const promotionPriceElement = document.getElementById('modalProductPromotionPrice');
                     const originalPriceElement = document.getElementById('modalProductOriginalPrice');
-                    const discountElement = document.getElementById('modalProductDiscount');
 
                     if (book.is_promotion && book.promotion_price) {
                         promotionPriceElement.textContent = 'RM' + parseFloat(book.promotion_price).toFixed(2);
-                        promotionPriceElement.className = 'text-2xl font-bold text-red-600';
                         originalPriceElement.textContent = 'RM' + parseFloat(book.Price).toFixed(2);
                         originalPriceElement.style.display = 'block';
 
-                        // Calculate and show discount
+                        // Calculate discount percentage
                         const discount = Math.round(((book.Price - book.promotion_price) / book.Price) * 100);
                         if (discount > 0) {
-                            discountElement.textContent = 'Save ' + discount + '%';
-                            discountElement.style.display = 'block';
-                        } else {
-                            discountElement.style.display = 'none';
+                            promotionPriceElement.innerHTML += ` <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded ml-2">Save ${discount}%</span>`;
                         }
                     } else {
                         promotionPriceElement.textContent = 'RM' + parseFloat(book.Price).toFixed(2);
-                        promotionPriceElement.className = 'text-2xl font-bold text-gray-900';
                         originalPriceElement.style.display = 'none';
-                        discountElement.style.display = 'none';
                     }
 
                     document.getElementById('modalProductImage').src = book.ImagePath;
                     document.getElementById('productQuantity').value = 1;
-
-                    // DEBUG: Check description
-                    console.log('Book Description from DB:', book.Description);
-                    console.log('Description type:', typeof book.Description);
-                    console.log('Description length:', book.Description ? book.Description.length : 0);
 
                     // Set the description from database
                     const descriptionElement = document.getElementById('modalProductDescription');
@@ -840,10 +848,6 @@ unset($_SESSION['error']);
             const quantity = parseInt(document.getElementById('productQuantity').value);
             const format = 'Physical';
 
-            // Use promotion price if available, otherwise use original price
-            const price = currentProduct.is_promotion && currentProduct.promotion_price ?
-                currentProduct.promotion_price : currentProduct.price;
-
             // Check if item already in cart
             const existingItemIndex = cart.findIndex(item =>
                 item.book_id === currentProduct.book_id && item.format === format
@@ -856,7 +860,7 @@ unset($_SESSION['error']);
                     book_id: currentProduct.book_id,
                     title: currentProduct.title,
                     author: currentProduct.author,
-                    price: price,
+                    price: currentProduct.price,
                     image: currentProduct.image,
                     quantity: quantity,
                     format: format
@@ -899,16 +903,11 @@ unset($_SESSION['error']);
             if (!currentProduct) return;
             const quantity = parseInt(document.getElementById('productQuantity').value);
             const format = 'Physical';
-
-            // Use promotion price if available, otherwise use original price
-            const price = currentProduct.is_promotion && currentProduct.promotion_price ?
-                currentProduct.promotion_price : currentProduct.price;
-
             cart = [{
                 book_id: currentProduct.book_id,
                 title: currentProduct.title,
                 author: currentProduct.author,
-                price: price,
+                price: currentProduct.price,
                 image: currentProduct.image,
                 quantity: quantity,
                 format: format
@@ -946,16 +945,13 @@ unset($_SESSION['error']);
             let subtotal = 0;
             let count = 0;
 
-            // Calculate shipping fee - FREE if subtotal > 200
-            const shippingFee = subtotal > 200 ? 0 : 5.00;
-
-            cart.forEach(item => {
+            cart.forEach((item, index) => {
                 const itemTotal = item.price * item.quantity;
                 subtotal += itemTotal;
                 count += item.quantity;
 
                 itemsHTML += `
-            <div class="cart-item">
+            <div class="cart-item" id="cart-item-${index}">
                 <img src="${item.image}" alt="${item.title}">
                 <div class="cart-item-details">
                     <div class="font-medium text-sm">${item.title}</div>
@@ -965,26 +961,25 @@ unset($_SESSION['error']);
                         <span class="font-bold">RM${itemTotal.toFixed(2)}</span>
                     </div>
                 </div>
-                <button onclick="removeFromCart('${item.book_id}', '${item.format}')" class="text-red-500 ml-2">
+                <button onclick="removeCartItem(${index})" class="text-red-500 ml-2">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
         `;
             });
 
-            // Recalculate shipping fee after we have the final subtotal
-            const finalShippingFee = subtotal > 200 ? 0 : 5.00;
-            const total = subtotal + finalShippingFee;
+            const shippingFee = subtotal > 200 ? 0 : 5.00;
+            const total = subtotal + shippingFee;
 
             cartItems.innerHTML = itemsHTML;
             cartCount.textContent = count;
-            cartShippingFee.textContent = finalShippingFee === 0 ? 'FREE' : `RM${finalShippingFee.toFixed(2)}`;
+            cartShippingFee.textContent = `RM${shippingFee.toFixed(2)}`;
             cartSubtotal.textContent = `RM${total.toFixed(2)}`;
             cartSubtotalNav.textContent = `RM${total.toFixed(2)}`;
         }
 
-        function removeFromCart(bookId, format) {
-            cart = cart.filter(item => !(item.book_id === bookId && item.format === format));
+        function removeCartItem(index) {
+            cart.splice(index, 1);
             updateCartDisplay();
             syncCartToServer();
         }

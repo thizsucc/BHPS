@@ -14,7 +14,7 @@ $staff_name = $_SESSION['name'];
 $staff_jawatan = $_SESSION['jawatan'];
 
 // Define categories and formats
-$categories = ["Fiction", "Non-Fiction", "Children", "Academic", "Business", "Food & Drink", "Romance"];
+$categories = ["Fiction",  "Children", "Academic", "Business", "Food & Drink", "Romance"];
 $formats = ["Physical", "E-book"];
 
 // Fetch dashboard statistics
@@ -46,19 +46,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $price = $_POST['bookPrice'];
         $quantity = $_POST['bookStock'];
         $description = $_POST['bookDescription'];
-        
+
         // Check if Book ID already exists
         $check_query = $conn->prepare("SELECT * FROM book WHERE BookID = ?");
         $check_query->bind_param("s", $book_id);
         $check_query->execute();
         $result = $check_query->get_result();
-        
+
         if ($result->num_rows > 0) {
             $_SESSION['error'] = "Book ID '$book_id' already exists. Please use a different Book ID.";
             header("Location: staff.php");
             exit();
         }
-        
+
         // Handle image upload
         $imagePath = 'default-book.jpg'; // default image
         if (isset($_FILES['bookCover']) && $_FILES['bookCover']['error'] == UPLOAD_ERR_OK) {
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $imagePath = $targetPath;
             }
         }
-        
+
         $stmt = $conn->prepare("INSERT INTO book (BookID, Name, Author, Category, Format, Price, Quantity, Description, ImagePath) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("sssssdiss", $book_id, $name, $author, $category, $format, $price, $quantity, $description, $imagePath);
         if ($stmt->execute()) {
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: staff.php");
         exit();
     }
-    
+
     if (isset($_POST['update_book'])) {
         $old_book_id = $_POST['old_book_id']; // The original Book ID
         $new_book_id = trim($_POST['editBookID']); // The new Book ID (can be same or different)
@@ -94,21 +94,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $price = $_POST['editBookPrice'];
         $quantity = $_POST['editBookStock'];
         $description = $_POST['editBookDescription'];
-        
+
         // Check if new Book ID already exists (if it's different from old one)
         if ($new_book_id != $old_book_id) {
             $check_query = $conn->prepare("SELECT * FROM book WHERE BookID = ?");
             $check_query->bind_param("s", $new_book_id);
             $check_query->execute();
             $result = $check_query->get_result();
-            
+
             if ($result->num_rows > 0) {
                 $_SESSION['error'] = "Book ID '$new_book_id' already exists. Please use a different Book ID.";
                 header("Location: staff.php");
                 exit();
             }
         }
-        
+
         // Handle image upload for update
         $imagePath = $_POST['currentImagePath'];
         if (isset($_FILES['editBookCover']) && $_FILES['editBookCover']['error'] == UPLOAD_ERR_OK) {
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
         }
-        
+
         //update book details
         $stmt = $conn->prepare("UPDATE book SET BookID = ?, Name = ?, Author = ?, Category = ?, Format = ?, Price = ?, Quantity = ?, Description = ?, ImagePath = ? WHERE BookID = ?");
         $stmt->bind_param("sssssdisss", $new_book_id, $name, $author, $category, $format, $price, $quantity, $description, $imagePath, $old_book_id);
@@ -138,10 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: staff.php");
         exit();
     }
-    
+
     if (isset($_POST['delete_book'])) {
         $book_id = $_POST['book_id'];
-        
+
         // Get image path before deleting
         $result = $conn->query("SELECT ImagePath FROM book WHERE BookID = '$book_id'");
         if ($result->num_rows > 0) {
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 unlink($imagePath);
             }
         }
-        
+
         $stmt = $conn->prepare("DELETE FROM book WHERE BookID = ?");
         $stmt->bind_param("s", $book_id);
         if ($stmt->execute()) {
@@ -163,14 +163,54 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: staff.php");
         exit();
     }
-    
+
     if (isset($_POST['update_order_status'])) {
         $order_id = $_POST['order_id'];
         $status = $_POST['status'];
-        
+
         $stmt = $conn->prepare("UPDATE `order` SET Status = ? WHERE OrderID = ?");
         $stmt->bind_param("si", $status, $order_id);
         $stmt->execute();
+        header("Location: staff.php");
+        exit();
+    }
+
+    if (isset($_POST['set_promotion'])) {
+        $book_id = $_POST['book_id'];
+        $promotion_price = $_POST['promotion_price'];
+
+        // Validate promotion price is less than original price
+        $book_query = $conn->query("SELECT Price FROM book WHERE BookID = '$book_id'");
+        if ($book_query->num_rows > 0) {
+            $book = $book_query->fetch_assoc();
+            if ($promotion_price >= $book['Price']) {
+                $_SESSION['error'] = "Promotion price must be less than original price.";
+                header("Location: staff.php");
+                exit();
+            }
+
+            $stmt = $conn->prepare("UPDATE book SET is_promotion = 1, promotion_price = ? WHERE BookID = ?");
+            $stmt->bind_param("ds", $promotion_price, $book_id);
+            if ($stmt->execute()) {
+                $_SESSION['success'] = "Promotion set successfully!";
+            } else {
+                $_SESSION['error'] = "Error setting promotion: " . $conn->error;
+            }
+        }
+        header("Location: staff.php");
+        exit();
+    }
+
+    if (isset($_POST['remove_promotion'])) {
+        $book_id = $_POST['book_id'];
+
+        $stmt = $conn->prepare("UPDATE book SET is_promotion = 0, promotion_price = NULL WHERE BookID = ?");
+        $stmt->bind_param("s", $book_id);
+        if ($stmt->execute()) {
+            $_SESSION['success'] = "Promotion removed successfully!";
+        } else {
+            $_SESSION['error'] = "Error removing promotion: " . $conn->error;
+        }
         header("Location: staff.php");
         exit();
     }
@@ -185,6 +225,7 @@ unset($_SESSION['error']);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -200,27 +241,33 @@ unset($_SESSION['error']);
             display: block;
             pointer-events: none;
         }
+
         .dropdown:hover .dropdown-menu {
             visibility: visible;
             opacity: 1;
             transform: translateY(0);
             pointer-events: auto;
         }
+
         .dropdown:hover .fa-chevron-down {
             transform: rotate(180deg);
         }
+
         .status-pill {
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
         }
+
         .book-card:hover .book-actions {
             opacity: 1;
         }
+
         .search-box:focus-within {
             border-color: #3b82f6;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -233,6 +280,7 @@ unset($_SESSION['error']);
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background: white;
             padding: 30px;
@@ -243,6 +291,7 @@ unset($_SESSION['error']);
             overflow-y: auto;
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
         }
+
         .book-cover-preview {
             max-width: 200px;
             max-height: 200px;
@@ -251,6 +300,7 @@ unset($_SESSION['error']);
         }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans">
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
@@ -271,7 +321,7 @@ unset($_SESSION['error']);
                 </div>
 
                 <!-- User Actions -->
-                 <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-4">
                     <div class="relative">
                         <button id="staffDropdownBtn" onclick="toggleStaffDropdown()" class="flex items-center text-gray-700 hover:text-blue-600 focus:outline-none">
                             <i class="fas fa-user-circle text-xl mr-1"></i>
@@ -284,9 +334,9 @@ unset($_SESSION['error']);
                             </a>
                         </div>
                     </div>
-                 </div>
+                </div>
             </div>
-    
+
 
             <!-- Navigation -->
             <nav class="hidden md:block">
@@ -294,7 +344,7 @@ unset($_SESSION['error']);
                     <li><a href="staff.php" class="text-blue-800 font-medium border-b-2 border-blue-600 pb-1">Dashboard</a></li>
                     <li><a href="orders.php" class="text-gray-800 hover:text-blue-600 font-medium">Orders</a></li>
                     <li><a href="books.php" class="text-gray-800 hover:text-blue-600 font-medium">Books</a></li>
-                    <li><a href="customers.php" class="text-gray-800 hover:text-blue-600 font-medium">Customers</a></li>
+                    <li><a href="promotion_management.php" class="text-gray-800 hover:text-blue-600 font-medium">Promotions</a></li>
                     <li><a href="reports.php" class="text-gray-800 hover:text-blue-600 font-medium">Reports</a></li>
                 </ul>
             </nav>
@@ -302,19 +352,19 @@ unset($_SESSION['error']);
     </header>
 
     <script>
-    // Toggle staff dropdown menu on click
-    function toggleStaffDropdown() {
-        const menu = document.getElementById('staffDropdownMenu');
-        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-    }
-    // Close dropdown if clicking outside
-    document.addEventListener('click', function(event) {
-        const btn = document.getElementById('staffDropdownBtn');
-        const menu = document.getElementById('staffDropdownMenu');
-        if (!btn.contains(event.target) && !menu.contains(event.target)) {
-            menu.style.display = 'none';
+        // Toggle staff dropdown menu on click
+        function toggleStaffDropdown() {
+            const menu = document.getElementById('staffDropdownMenu');
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
         }
-    });
+        // Close dropdown if clicking outside
+        document.addEventListener('click', function(event) {
+            const btn = document.getElementById('staffDropdownBtn');
+            const menu = document.getElementById('staffDropdownMenu');
+            if (!btn.contains(event.target) && !menu.contains(event.target)) {
+                menu.style.display = 'none';
+            }
+        });
     </script>
 
     <!-- Main Content -->
@@ -326,7 +376,7 @@ unset($_SESSION['error']);
                 <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
                     <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                         <title>Close</title>
-                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                     </svg>
                 </span>
             </div>
@@ -338,7 +388,7 @@ unset($_SESSION['error']);
                 <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
                     <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                         <title>Close</title>
-                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
                     </svg>
                 </span>
             </div>
@@ -431,36 +481,36 @@ unset($_SESSION['error']);
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <?php while ($order = $orders_query->fetch_assoc()): ?>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">#<?php echo $order['OrderID']; ?></div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">Customer #<?php echo $order['User_ID']; ?></div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900"><?php echo $order['Quantity']; ?> items</div>
-                                <div class="text-sm text-gray-500"><?php echo htmlspecialchars($order['book_name'] ?: 'No book'); ?></div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?php echo date('M j, Y', strtotime($order['order_date'])); ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <form method="POST" class="inline">
-                                    <input type="hidden" name="order_id" value="<?php echo $order['OrderID']; ?>">
-                                    <select name="status" onchange="this.form.submit()" class="status-pill <?php echo getStatusClass($order['Status']); ?> border-0 cursor-pointer">
-                                        <option value="Processing" <?php echo $order['Status'] == 'Processing' ? 'selected' : ''; ?>>Processing</option>
-                                        <option value="Delivery" <?php echo $order['Status'] == 'Delivery' ? 'selected' : ''; ?>>Delivery</option>
-                                        <option value="Completed" <?php echo $order['Status'] == 'Completed' ? 'selected' : ''; ?>>Completed</option>
-                                        <option value="Cancelled" <?php echo $order['Status'] == 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
-                                    </select>
-                                    <input type="hidden" name="update_order_status">
-                                </form>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="openOrderDetail(<?php echo $order['OrderID']; ?>)">View</button>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">#<?php echo $order['OrderID']; ?></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">Customer #<?php echo $order['User_ID']; ?></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900"><?php echo $order['Quantity']; ?> items</div>
+                                    <div class="text-sm text-gray-500"><?php echo htmlspecialchars($order['book_name'] ?: 'No book'); ?></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <?php echo date('M j, Y', strtotime($order['order_date'])); ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <form method="POST" class="inline">
+                                        <input type="hidden" name="order_id" value="<?php echo $order['OrderID']; ?>">
+                                        <select name="status" onchange="this.form.submit()" class="status-pill <?php echo getStatusClass($order['Status']); ?> border-0 cursor-pointer">
+                                            <option value="Processing" <?php echo $order['Status'] == 'Processing' ? 'selected' : ''; ?>>Processing</option>
+                                            <option value="Delivery" <?php echo $order['Status'] == 'Delivery' ? 'selected' : ''; ?>>Delivery</option>
+                                            <option value="Completed" <?php echo $order['Status'] == 'Completed' ? 'selected' : ''; ?>>Completed</option>
+                                            <option value="Cancelled" <?php echo $order['Status'] == 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                                        </select>
+                                        <input type="hidden" name="update_order_status">
+                                    </form>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="openOrderDetail(<?php echo $order['OrderID']; ?>)">View</button>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
@@ -476,67 +526,125 @@ unset($_SESSION['error']);
         </div>
 
         <!-- Quick Actions -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-medium text-gray-800 mb-4">Manage Books</h3>
-        <div class="space-y-3">
-            <a href="books.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-blue-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-list text-blue-600"></i>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h3 class="text-lg font-medium text-gray-800 mb-4">Manage Books</h3>
+                <div class="space-y-3">
+                    <a href="books.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
+                        <div class="bg-blue-100 p-2 rounded-full mr-3">
+                            <i class="fas fa-list text-blue-600"></i>
+                        </div>
+                        <span class="text-gray-700">View/Edit Books</span>
+                    </a>
                 </div>
-                <span class="text-gray-700">View/Edit Books</span>
-            </a>
-        </div>
-    </div>
+            </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-medium text-gray-800 mb-4">Order Management</h3>
-        <div class="space-y-3">
-            <a href="orders.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-yellow-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-clipboard-list text-yellow-600"></i>
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h3 class="text-lg font-medium text-gray-800 mb-4">Order Management</h3>
+                <div class="space-y-3">
+                    <a href="orders.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
+                        <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                            <i class="fas fa-clipboard-list text-yellow-600"></i>
+                        </div>
+                        <span class="text-gray-700">View/Edit orders</span>
+                    </a>
                 </div>
-                <span class="text-gray-700">Process Orders</span>
-            </a>
-            <a href="shipping.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-red-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-truck text-red-600"></i>
-                </div>
-                <span class="text-gray-700">Update Shipping</span>
-            </a>
-            <a href="returns.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-indigo-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-undo-alt text-indigo-600"></i>
-                </div>
-                <span class="text-gray-700">Handle Returns</span>
-            </a>
-        </div>
-    </div>
+            </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm">
-        <h3 class="text-lg font-medium text-gray-800 mb-4">Reports & Analytics</h3>
-        <div class="space-y-3">
-            <a href="reports.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-pink-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-chart-bar text-pink-600"></i>
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h3 class="text-lg font-medium text-gray-800 mb-4">Reports</h3>
+                <div class="space-y-3">
+                    <a href="download_report.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
+                        <div class="bg-pink-100 p-2 rounded-full mr-3">
+                            <i class="fas fa-chart-bar text-pink-600"></i>
+                        </div>
+                        <span class="text-gray-700">Sales Reports</span>
+                    </a>
                 </div>
-                <span class="text-gray-700">Sales Reports</span>
-            </a>
-            <a href="analytics.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-teal-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-chart-line text-teal-600"></i>
-                </div>
-                <span class="text-gray-700">Business Analytics</span>
-            </a>
-            <a href="feedback.php" class="flex items-center p-3 rounded-lg hover:bg-gray-50">
-                <div class="bg-orange-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-star text-orange-600"></i>
-                </div>
-                <span class="text-gray-700">Customer Feedback</span>
-            </a>
+            </div>
         </div>
-    </div>
-</div>
+
+        <!-- Promotion Management -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b">
+                <h2 class="text-lg font-medium text-gray-800">Promotion Management</h2>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Set Book Promotion</h3>
+                    <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div>
+                            <label class="block text-gray-700 mb-2" for="promotionBook">Select Book</label>
+                            <select id="promotionBook" name="book_id" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <option value="">Choose a book</option>
+                                <?php
+                                $all_books = $conn->query("SELECT BookID, Name, Author, Price FROM book ORDER BY Name");
+                                while ($book = $all_books->fetch_assoc()):
+                                ?>
+                                    <option value="<?php echo $book['BookID']; ?>" data-price="<?php echo $book['Price']; ?>">
+                                        <?php echo htmlspecialchars($book['Name']); ?> by <?php echo htmlspecialchars($book['Author']); ?> (RM<?php echo number_format($book['Price'], 2); ?>)
+                                    </option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2" for="promotionPrice">Promotion Price (RM)</label>
+                            <input type="number" id="promotionPrice" name="promotion_price" step="0.01" min="0.01" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <button type="submit" name="set_promotion" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                                Set Promotion
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Current Promotions -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Current Promotions</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Original Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promotion Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <?php
+                                $promotions = $conn->query("SELECT * FROM book WHERE is_promotion = 1 ORDER BY Name");
+                                while ($promo = $promotions->fetch_assoc()):
+                                    $discount = round((($promo['Price'] - $promo['promotion_price']) / $promo['Price']) * 100);
+                                ?>
+                                    <tr>
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($promo['Name']); ?></div>
+                                            <div class="text-sm text-gray-500">by <?php echo htmlspecialchars($promo['Author']); ?></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">RM<?php echo number_format($promo['Price'], 2); ?></td>
+                                        <td class="px-6 py-4 text-sm font-bold text-red-600">RM<?php echo number_format($promo['promotion_price'], 2); ?></td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded"><?php echo $discount; ?>% OFF</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <form method="POST" class="inline">
+                                                <input type="hidden" name="book_id" value="<?php echo $promo['BookID']; ?>">
+                                                <button type="submit" name="remove_promotion" class="text-red-600 hover:text-red-900" onclick="return confirm('Remove this book from promotion?')">
+                                                    Remove Promotion
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Recent Books Added -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
@@ -545,37 +653,37 @@ unset($_SESSION['error']);
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <?php while ($book = $books_query->fetch_assoc()): ?>
-                <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
-                    <div class="relative">
-                        <img src="<?php echo $book['ImagePath'] ?: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80'; ?>" 
-                             alt="Book Cover" class="w-full h-48 object-cover">
-                        <div class="book-actions absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 transition-opacity">
-                            <button class="bg-white text-blue-800 rounded-full p-2 mx-1 hover:bg-blue-100" onclick="editBook('<?php echo $book['BookID']; ?>')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="bg-blue-600 text-white rounded-full p-2 mx-1 hover:bg-blue-700" onclick="deleteBook('<?php echo $book['BookID']; ?>')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                    <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                        <div class="relative">
+                            <img src="<?php echo $book['ImagePath'] ?: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80'; ?>"
+                                alt="Book Cover" class="w-full h-48 object-cover">
+                            <div class="book-actions absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 transition-opacity">
+                                <button class="bg-white text-blue-800 rounded-full p-2 mx-1 hover:bg-blue-100" onclick="editBook('<?php echo $book['BookID']; ?>')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="bg-blue-600 text-white rounded-full p-2 mx-1 hover:bg-blue-700" onclick="deleteBook('<?php echo $book['BookID']; ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">ID: <?php echo $book['BookID']; ?></span>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Format']); ?></span>
+                            </div>
+                            <h3 class="font-medium text-gray-900 mb-1"><?php echo htmlspecialchars($book['Name']); ?></h3>
+                            <p class="text-sm text-gray-600 mb-1">by <?php echo htmlspecialchars($book['Author']); ?></p>
+                            <div class="mb-2">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Category']); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-900">RM<?php echo number_format($book['Price'], 2); ?></span>
+                                <span class="text-xs <?php echo getStockClass($book['Quantity']); ?> px-2 py-1 rounded">
+                                    <?php echo getStockText($book['Quantity']); ?>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div class="p-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">ID: <?php echo $book['BookID']; ?></span>
-                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Format']); ?></span>
-                        </div>
-                        <h3 class="font-medium text-gray-900 mb-1"><?php echo htmlspecialchars($book['Name']); ?></h3>
-                        <p class="text-sm text-gray-600 mb-1">by <?php echo htmlspecialchars($book['Author']); ?></p>
-                        <div class="mb-2">
-                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Category']); ?></span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-gray-900">RM<?php echo number_format($book['Price'], 2); ?></span>
-                            <span class="text-xs <?php echo getStockClass($book['Quantity']); ?> px-2 py-1 rounded">
-                                <?php echo getStockText($book['Quantity']); ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
                 <?php endwhile; ?>
             </div>
         </div>
@@ -604,27 +712,27 @@ unset($_SESSION['error']);
             <form method="POST" enctype="multipart/form-data">
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="bookID">Book ID <span class="text-red-500">*</span></label>
-                    <input type="text" id="bookID" name="bookID" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required 
-                           placeholder="Enter unique Book ID (e.g., B001, ISBN123)">
+                    <input type="text" id="bookID" name="bookID" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required
+                        placeholder="Enter unique Book ID (e.g., B001, ISBN123)">
                     <p class="text-xs text-gray-500 mt-1">Must be unique. This will be used as the book identifier.</p>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="bookTitle">Book Title <span class="text-red-500">*</span></label>
                     <input type="text" id="bookTitle" name="bookTitle" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="bookAuthor">Author <span class="text-red-500">*</span></label>
                     <input type="text" id="bookAuthor" name="bookAuthor" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-gray-700 mb-2" for="bookCategory">Category <span class="text-red-500">*</span></label>
                         <select id="bookCategory" name="bookCategory" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select a category</option>
-                            <?php foreach($categories as $category): ?>
+                            <?php foreach ($categories as $category): ?>
                                 <option value="<?php echo $category; ?>"><?php echo $category; ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -633,13 +741,13 @@ unset($_SESSION['error']);
                         <label class="block text-gray-700 mb-2" for="bookFormat">Format <span class="text-red-500">*</span></label>
                         <select id="bookFormat" name="bookFormat" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select a format</option>
-                            <?php foreach($formats as $format): ?>
+                            <?php foreach ($formats as $format): ?>
                                 <option value="<?php echo $format; ?>"><?php echo $format; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-gray-700 mb-2" for="bookPrice">Price (RM) <span class="text-red-500">*</span></label>
@@ -650,7 +758,7 @@ unset($_SESSION['error']);
                         <input type="number" id="bookStock" name="bookStock" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="bookCover">Book Cover</label>
                     <input type="file" id="bookCover" name="bookCover" accept="image/*" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -658,12 +766,12 @@ unset($_SESSION['error']);
                         <img src="" alt="Book Cover Preview" class="book-cover-preview">
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="bookDescription">Description</label>
                     <textarea id="bookDescription" name="bookDescription" rows="3" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
-                
+
                 <div class="flex justify-end space-x-3">
                     <button type="button" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400" onclick="closeModal('addBookModal')">Cancel</button>
                     <button type="submit" name="add_book" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Book</button>
@@ -683,29 +791,29 @@ unset($_SESSION['error']);
                 <input type="hidden" name="old_book_id" id="oldBookId">
                 <input type="hidden" name="currentImagePath" id="currentImagePath">
                 <input type="hidden" name="update_book">
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="editBookID">Book ID <span class="text-red-500">*</span></label>
                     <input type="text" id="editBookID" name="editBookID" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     <p class="text-xs text-gray-500 mt-1">You can change the Book ID if needed.</p>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="editBookTitle">Book Title <span class="text-red-500">*</span></label>
                     <input type="text" id="editBookTitle" name="editBookTitle" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="editBookAuthor">Author <span class="text-red-500">*</span></label>
                     <input type="text" id="editBookAuthor" name="editBookAuthor" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-gray-700 mb-2" for="editBookCategory">Category <span class="text-red-500">*</span></label>
                         <select id="editBookCategory" name="editBookCategory" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select a category</option>
-                            <?php foreach($categories as $category): ?>
+                            <?php foreach ($categories as $category): ?>
                                 <option value="<?php echo $category; ?>"><?php echo $category; ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -714,13 +822,13 @@ unset($_SESSION['error']);
                         <label class="block text-gray-700 mb-2" for="editBookFormat">Format <span class="text-red-500">*</span></label>
                         <select id="editBookFormat" name="editBookFormat" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Select a format</option>
-                            <?php foreach($formats as $format): ?>
+                            <?php foreach ($formats as $format): ?>
                                 <option value="<?php echo $format; ?>"><?php echo $format; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-gray-700 mb-2" for="editBookPrice">Price (RM) <span class="text-red-500">*</span></label>
@@ -731,7 +839,7 @@ unset($_SESSION['error']);
                         <input type="number" id="editBookStock" name="editBookStock" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="editBookCover">Book Cover</label>
                     <div id="currentBookCover" class="mb-2">
@@ -742,12 +850,12 @@ unset($_SESSION['error']);
                         <img src="" alt="New Book Cover Preview" class="book-cover-preview">
                     </div>
                 </div>
-                
+
                 <div class="mb-4">
                     <label class="block text-gray-700 mb-2" for="editBookDescription">Description</label>
                     <textarea id="editBookDescription" name="editBookDescription" rows="3" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
-                
+
                 <div class="flex justify-end space-x-3">
                     <button type="button" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400" onclick="closeModal('editBookModal')">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Update Book</button>
@@ -780,9 +888,9 @@ unset($_SESSION['error']);
                         <a href="#" class="text-gray-400 hover:text-white">
                             <i class="fab fa-instagram"></i>
                         </a>
-                    </div>  
+                    </div>
                 </div>
-                
+
                 <!-- Quick Links -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
@@ -793,7 +901,7 @@ unset($_SESSION['error']);
                         <li><a href="reports.php" class="text-gray-400 hover:text-white">Reports</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Customer Service -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
@@ -802,7 +910,7 @@ unset($_SESSION['error']);
                         <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Contact -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Contact Us</h3>
@@ -822,7 +930,7 @@ unset($_SESSION['error']);
                     </ul>
                 </div>
             </div>
-            
+
             <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
                 <p class="text-gray-400 mb-4 md:mb-0">© 2025 Book Heaven. All rights reserved.</p>
                 <div class="flex space-x-6">
@@ -843,7 +951,7 @@ unset($_SESSION['error']);
                         alert(order.error);
                         return;
                     }
-                    
+
                     // Format the order date
                     const orderDate = new Date(order.order_date);
                     const formattedDate = orderDate.toLocaleDateString('en-US', {
@@ -851,7 +959,7 @@ unset($_SESSION['error']);
                         month: 'short',
                         day: 'numeric'
                     });
-                    
+
                     const detailHtml = `
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-3">Order Information</h3>
@@ -914,7 +1022,7 @@ unset($_SESSION['error']);
                             </div>
                         </div>
                     `;
-                    
+
                     document.getElementById('orderDetailContent').innerHTML = detailHtml;
                     document.getElementById('orderDetailModal').style.display = 'flex';
                 })
@@ -926,12 +1034,17 @@ unset($_SESSION['error']);
 
         // Function for status classes
         function getStatusClass(status) {
-            switch(status.toLowerCase()) {
-                case 'processing': return 'bg-blue-100 text-blue-800';
-                case 'delivery': return 'bg-blue-100 text-blue-800';
-                case 'completed': return 'bg-green-100 text-green-800';
-                case 'cancelled': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
+            switch (status.toLowerCase()) {
+                case 'processing':
+                    return 'bg-blue-100 text-blue-800';
+                case 'delivery':
+                    return 'bg-blue-100 text-blue-800';
+                case 'completed':
+                    return 'bg-green-100 text-green-800';
+                case 'cancelled':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
             }
         }
 
@@ -944,15 +1057,15 @@ unset($_SESSION['error']);
         document.getElementById('bookCover').addEventListener('change', function(e) {
             const preview = document.getElementById('bookCoverPreview');
             const img = preview.querySelector('img');
-            
+
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     img.src = e.target.result;
                     preview.classList.remove('hidden');
                 }
-                
+
                 reader.readAsDataURL(this.files[0]);
             }
         });
@@ -961,15 +1074,15 @@ unset($_SESSION['error']);
         document.getElementById('editBookCover').addEventListener('change', function(e) {
             const preview = document.getElementById('editBookCoverPreview');
             const img = preview.querySelector('img');
-            
+
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     img.src = e.target.result;
                     preview.classList.remove('hidden');
                 }
-                
+
                 reader.readAsDataURL(this.files[0]);
             }
         });
@@ -1000,29 +1113,52 @@ unset($_SESSION['error']);
                 });
             }
         };
+
+        // Promotion form functionality
+        document.getElementById('promotionBook').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const originalPrice = selectedOption.getAttribute('data-price');
+            const promotionPriceInput = document.getElementById('promotionPrice');
+
+            if (originalPrice) {
+                // Set promotion price to 10% less than original as default
+                const suggestedPrice = (parseFloat(originalPrice) * 0.9).toFixed(2);
+                promotionPriceInput.value = suggestedPrice;
+                promotionPriceInput.max = originalPrice - 0.01;
+            }
+        });
     </script>
 </body>
+
 </html>
 
 <?php
 // Helper functions
-function getStatusClass($status) {
-    switch(strtolower($status)) {
-        case 'processing': return 'bg-blue-100 text-blue-800';
-        case 'delivery': return 'bg-blue-100 text-blue-800';
-        case 'completed': return 'bg-green-100 text-green-800';
-        case 'cancelled': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
+function getStatusClass($status)
+{
+    switch (strtolower($status)) {
+        case 'processing':
+            return 'bg-blue-100 text-blue-800';
+        case 'delivery':
+            return 'bg-blue-100 text-blue-800';
+        case 'completed':
+            return 'bg-green-100 text-green-800';
+        case 'cancelled':
+            return 'bg-red-100 text-red-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
     }
 }
 
-function getStockClass($quantity) {
+function getStockClass($quantity)
+{
     if ($quantity == 0) return 'bg-red-100 text-red-800';
     if ($quantity < 10) return 'bg-yellow-100 text-yellow-800';
     return 'bg-green-100 text-green-800';
 }
 
-function getStockText($quantity) {
+function getStockText($quantity)
+{
     if ($quantity == 0) return 'Out of Stock';
     if ($quantity < 10) return 'Low Stock: ' . $quantity;
     return 'In Stock: ' . $quantity;

@@ -47,7 +47,7 @@ session_destroy();
 <body class="bg-gray-50 font-sans">
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
-        Free shipping on orders over RM100 | Member discounts available
+        Free shipping on orders over RM200
     </div>
 
     <!-- Header -->

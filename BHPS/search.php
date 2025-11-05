@@ -1,137 +1,54 @@
 <?php
 session_start();
-include 'db_connect.php';
+include_once 'db_connect.php';
 
-// Initialize cart if not exists
-if (!isset($_SESSION['cart'])) {
-    $_SESSION['cart'] = [];
-}
+$logged_in = isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true;
+$username = $logged_in ? $_SESSION['name'] : '';
 
-// Fetch user information if logged in
-$user_name = "Guest";
-$logged_in = false;
-if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) {
-    $logged_in = true;
-    $user_name = $_SESSION['name'];
-}
+// Get search query
+$search_query = isset($_GET['query']) ? trim($_GET['query']) : '';
 
-// Handle search
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$where = '';
-if (!empty($search)) {
-    $where = " WHERE (Name LIKE '%$search%' OR Author LIKE '%$search%' OR BookID LIKE '%$search%' OR Category LIKE '%$search%')";
-}
-
-// Fetch last 10 books (most recently added) with search filter
-$new_release_books = [];
-$query = "SELECT * FROM book $where ORDER BY BookID DESC LIMIT 10";
-$result = $conn->query($query);
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $new_release_books[] = $row;
-    }
-}
-
-// Latest 10 book IDs for NEW badge (all are new releases)
+// Fetch latest book IDs for NEW badge (same as index.php)
 $latest_book_ids = [];
-foreach ($new_release_books as $book) {
-    $latest_book_ids[] = $book['BookID'];
-}
-
-// Handle add to cart
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
-    if (!$logged_in) {
-        $_SESSION['error'] = "Please sign in to add items to your cart.";
-        header("Location: login.php");
-        exit();
-    }
-
-    $book_id = $_POST['book_id'];
-    $quantity = (int)$_POST['quantity'];
-    $format = $_POST['format'];
-
-    // Find the book in database
-    $book_result = $conn->query("SELECT * FROM book WHERE BookID = '$book_id'");
-    if ($book_result && $book_result->num_rows > 0) {
-        $book = $book_result->fetch_assoc();
-
-        // Use promotion price if available
-        $price = $book['is_promotion'] && $book['promotion_price'] ? $book['promotion_price'] : $book['Price'];
-
-        $cart_item = [
-            'book_id' => $book_id,
-            'title' => $book['Name'],
-            'author' => $book['Author'],
-            'price' => (float)$price,
-            'quantity' => $quantity,
-            'format' => $format,
-            'image' => $book['ImagePath'] ?: 'default-book.jpg'
-        ];
-
-        // Check if item already in cart
-        $item_exists = false;
-        foreach ($_SESSION['cart'] as $index => &$item) {
-            if ($item['book_id'] == $book_id && $item['format'] == $format) {
-                $item['quantity'] += $quantity;
-                $item_exists = true;
-                break;
-            }
-        }
-
-        if (!$item_exists) {
-            $_SESSION['cart'][] = $cart_item;
-        }
-
-        $_SESSION['success'] = "Item added to cart successfully!";
-
-        // Return success for AJAX
-        if (isset($_POST['ajax'])) {
-            echo json_encode(['success' => true, 'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))]);
-            exit;
-        }
-
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
+$latestRes = $conn->query("SELECT BookID FROM book ORDER BY BookID DESC LIMIT 10");
+if ($latestRes) {
+    while ($r = $latestRes->fetch_assoc()) {
+        $latest_book_ids[] = $r['BookID'];
     }
 }
 
-// Handle remove from cart via AJAX
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove_item'])) {
-    $index = (int)$_POST['index'];
-    if (isset($_SESSION['cart'][$index])) {
-        array_splice($_SESSION['cart'], $index, 1);
-        echo json_encode(['success' => true]);
-        exit;
-    }
-    echo json_encode(['success' => false]);
-    exit;
-}
+// Fetch bestseller IDs (same as index.php)
+$bestseller_file = __DIR__ . '/bestseller_books.json';
+$bestseller_ids = file_exists($bestseller_file) ? json_decode(file_get_contents($bestseller_file), true) : [];
+if (!is_array($bestseller_ids)) $bestseller_ids = [];
 
-// Calculate cart totals
-$cart_count = 0;
-$cart_total = 0;
-foreach ($_SESSION['cart'] as $item) {
-    $cart_count += $item['quantity'];
-    $cart_total += $item['price'] * $item['quantity'];
-}
+// Search books if query is provided
+$search_results = [];
+$search_count = 0;
 
-// Display success/error messages
-$success_message = isset($_SESSION['success']) ? $_SESSION['success'] : '';
-$error_message = isset($_SESSION['error']) ? $_SESSION['error'] : '';
-unset($_SESSION['success']);
-unset($_SESSION['error']);
+if (!empty($search_query)) {
+    // Prepare search query - search in Name, Author, and Description
+    $search_term = "%$search_query%";
+    $stmt = $conn->prepare("SELECT * FROM book WHERE Name LIKE ? OR Author LIKE ? OR Description LIKE ? ORDER BY Name");
+    $stmt->bind_param("sss", $search_term, $search_term, $search_term);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $search_results = $result->fetch_all(MYSQLI_ASSOC);
+    $search_count = count($search_results);
+}
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Releases - Book Heaven</title>
+    <title>Search Results - Book Heaven</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Include all the same styles from index.php */
         .dropdown-menu {
             display: none;
             position: absolute;
@@ -229,6 +146,7 @@ unset($_SESSION['error']);
             color: #6b7280;
         }
 
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -255,13 +173,13 @@ unset($_SESSION['error']);
     </style>
 </head>
 
-<body class="bg-gray-50 font-sans">
+<body>
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
         🎉 Special Promotion! Limited time offers on selected books 🎉 | Free shipping on orders over RM200
     </div>
 
-    <!-- Header -->
+    <!-- Header (same as index.php) -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4">
             <!-- Top Header -->
@@ -276,10 +194,10 @@ unset($_SESSION['error']);
                 <!-- Search Bar -->
                 <div class="hidden md:flex flex-1 mx-8">
                     <div class="relative w-full max-w-xl">
-                        <form method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
-                            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
-                                placeholder="Search new releases..."
-                                class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;">
+                        <form action="search.php" method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
+                            <input type="text" name="query" placeholder="Search books, authors, ISBN..."
+                                class="py-2 px-6 w-full focus:outline-none" style="min-width: 300px;"
+                                value="<?php echo htmlspecialchars($search_query); ?>">
                             <button type="submit" class="bg-blue-600 text-white px-6 py-2 hover:bg-blue-700">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -287,13 +205,13 @@ unset($_SESSION['error']);
                     </div>
                 </div>
 
-                <!-- User Actions -->
+                <!-- User Actions (same as index.php) -->
                 <div class="flex items-center space-x-4">
                     <?php if ($logged_in): ?>
                         <div class="relative">
                             <button onclick="toggleUserMenu()" class="text-gray-700 hover:text-blue-600 flex items-center">
                                 <i class="fas fa-user-circle text-xl mr-1"></i>
-                                <span class="hidden md:inline"><?php echo htmlspecialchars($user_name); ?></span>
+                                <span class="hidden md:inline"><?php echo htmlspecialchars($username); ?></span>
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
                             <div id="userDropdown" class="user-menu absolute mt-2 right-0" style="display:none;">
@@ -305,49 +223,31 @@ unset($_SESSION['error']);
                         <!-- Cart Icon with Subtotal -->
                         <div class="relative flex items-center space-x-2">
                             <div class="text-right">
-                                <div class="text-sm font-medium text-gray-700" id="cartSubtotalNav">RM<?php echo number_format($cart_total + ($cart_count > 0 ? 5 : 0), 2); ?></div>
+                                <div class="text-sm font-medium text-gray-700" id="cartSubtotalNav">RM0.00</div>
                                 <div class="text-xs text-gray-500">Cart Total</div>
                             </div>
                             <button onclick="toggleCart()" class="text-gray-700 hover:text-blue-600 relative">
                                 <i class="fas fa-shopping-cart text-xl"></i>
-                                <span id="cartCount" class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"><?php echo $cart_count; ?></span>
+                                <span id="cartCount" class="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
                             </button>
                             <div id="cartPanel" class="action-panel absolute mt-2 right-0 top-full">
                                 <div class="p-4 border-b">
                                     <h3 class="font-bold">Your Cart</h3>
                                 </div>
                                 <div id="cartItems">
-                                    <?php if (empty($_SESSION['cart'])): ?>
-                                        <div class="empty-state">
-                                            <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
-                                            <p>Your cart is empty</p>
-                                        </div>
-                                    <?php else: ?>
-                                        <?php foreach ($_SESSION['cart'] as $index => $item): ?>
-                                            <div class="cart-item" id="cart-item-<?php echo $index; ?>">
-                                                <img src="<?php echo $item['image']; ?>" alt="<?php echo htmlspecialchars($item['title']); ?>">
-                                                <div class="cart-item-details">
-                                                    <div class="font-medium text-sm"><?php echo htmlspecialchars($item['title']); ?></div>
-                                                    <div class="flex justify-between text-xs">
-                                                        <span>RM<?php echo number_format($item['price'], 2); ?> x <?php echo $item['quantity']; ?></span>
-                                                        <span class="font-bold">RM<?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
-                                                    </div>
-                                                </div>
-                                                <button onclick="removeFromCart('<?php echo $item['book_id']; ?>', '<?php echo $item['format']; ?>')" class="text-red-500 ml-2">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                    <div class="empty-state">
+                                        <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
+                                        <p>Your cart is empty</p>
+                                    </div>
                                 </div>
                                 <div class="p-4 border-t">
                                     <div class="flex justify-between mb-2">
                                         <span>Shipping fee:</span>
-                                        <span id="cartShippingFee">RM<?php echo $cart_count > 0 ? '5.00' : '0.00'; ?></span>
+                                        <span id="cartShippingFee">RM5.00</span>
                                     </div>
                                     <div class="flex justify-between mb-2">
                                         <span>Subtotal:</span>
-                                        <span id="cartSubtotal">RM<?php echo number_format($cart_total + ($cart_count > 0 ? 5 : 0), 2); ?></span>
+                                        <span id="cartSubtotal">RM0.00</span>
                                     </div>
                                     <a href="payment.php" onclick="syncCartAndCheckout(event)" class="block w-full bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700">Checkout</a>
                                 </div>
@@ -362,13 +262,13 @@ unset($_SESSION['error']);
                 </div>
             </div>
 
-            <!-- Mobile Search (hidden on desktop) -->
+            <!-- Mobile Search -->
             <div class="md:hidden py-2">
                 <div class="relative">
-                    <form method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
-                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
-                            placeholder="Search new releases..."
-                            class="py-2 px-4 w-full focus:outline-none">
+                    <form action="search.php" method="GET" class="search-box flex items-center border rounded-full overflow-hidden">
+                        <input type="text" name="query" placeholder="Search books..."
+                            class="py-2 px-4 w-full focus:outline-none"
+                            value="<?php echo htmlspecialchars($search_query); ?>">
                         <button type="submit" class="bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">
                             <i class="fas fa-search"></i>
                         </button>
@@ -385,183 +285,118 @@ unset($_SESSION['error']);
                         </button>
                         <div id="categoriesDropdown" class="dropdown-menu absolute bg-white shadow-lg rounded mt-2 w-48 z-50">
                             <a href="fiction.php" class="block px-4 py-2 hover:bg-gray-100">Fiction</a>
-                            <a href="academic.php" class="block px-4 py-2 hover:bg-gray-100">Academic</a>
                             <a href="children.php" class="block px-4 py-2 hover:bg-gray-100">Children</a>
+                            <a href="academic.php" class="block px-4 py-2 hover:bg-gray-100">Academic</a>
                             <a href="business.php" class="block px-4 py-2 hover:bg-gray-100">Business</a>
                             <a href="foodNdrink.php" class="block px-4 py-2 hover:bg-gray-100">Food & Drink</a>
+                            <a href="romance.php" class="block px-4 py-2 hover:bg-gray-100">Romance</a>
                         </div>
                     </li>
-                    <li><a href="newRelease.php" class="text-blue-600 hover:text-blue-800 font-medium">New Releases</a></li>
+                    <li><a href="newRelease.php" class="text-gray-800 hover:text-blue-600 font-medium">New Releases</a></li>
                     <li><a href="bestseller.php" class="text-gray-800 hover:text-blue-600 font-medium">Bestsellers</a></li>
-                    <li><a href="promotion.php" class="text-gray-600 hover:text-blue-800 font-medium">Promotions</a></li>
+                    <li><a href="promotion.php" class="text-gray-800 hover:text-blue-600 font-medium">Promotions</a></li>
                     <li><a href="about.html" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <!-- Breadcrumb -->
-    <div class="bg-white border-b py-4">
-        <div class="container mx-auto px-4">
-            <nav class="text-sm">
-                <ol class="list-none p-0 inline-flex">
-                    <li class="flex items-center">
-                        <a href="index.php" class="text-blue-600 hover:text-blue-800">Home</a>
-                        <span class="mx-2">/</span>
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-gray-500">New Releases</span>
-                    </li>
-                </ol>
-            </nav>
+    <div class="md:hidden bg-white border-t border-b py-2 px-4 flex justify-between items-center">
+        <button class="text-gray-800">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+        <div class="text-sm text-gray-600">
+            <a href="fiction.php" class="font-medium">Browse Categories</a>
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <?php if ($success_message): ?>
-        <div class="container mx-auto px-4 mt-6">
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-                <span class="block sm:inline"><?php echo $success_message; ?></span>
-                <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
-                    <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <title>Close</title>
-                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-                    </svg>
-                </span>
-            </div>
-        </div>
-    <?php endif; ?>
+    <!-- Search Results Section -->
+    <section class="py-8 bg-gray-50 min-h-screen">
+        <div class="container mx-auto px-4">
+            <!-- Search Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Search Results</h1>
 
-    <?php if ($error_message): ?>
-        <div class="container mx-auto px-4 mt-6">
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <span class="block sm:inline"><?php echo $error_message; ?></span>
-                <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
-                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <title>Close</title>
-                        <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-                    </svg>
-                </span>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8" id="books-section">
-        <div class="flex flex-col md:flex-row gap-8">
-            <aside class="md:w-1/4">
-                <!-- About New Releases -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4">About New Releases</h2>
+                <?php if (!empty($search_query)): ?>
                     <p class="text-gray-600">
-                        Discover the latest titles added by our staff across all categories. Check back often for fresh picks!
+                        <?php if ($search_count > 0): ?>
+                            Found <?php echo $search_count; ?> result(s) for "<span class="font-semibold"><?php echo htmlspecialchars($search_query); ?></span>"
+                        <?php else: ?>
+                            No results found for "<span class="font-semibold"><?php echo htmlspecialchars($search_query); ?></span>"
+                        <?php endif; ?>
                     </p>
-                </div>
+                <?php else: ?>
+                    <p class="text-gray-600">Please enter a search term to find books.</p>
+                <?php endif; ?>
+            </div>
 
-                <!-- Categories List -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <h2 class="text-xl font-bold mb-4">Categories</h2>
-                    <ul class="space-y-3">
-                        <li><a href="fiction.php" class="text-gray-700 hover:text-blue-600">Fiction</a></li>
-                        <li><a href="academic.php" class="text-gray-700 hover:text-blue-600">Academic</a></li>
-                        <li><a href="children.php" class="text-gray-700 hover:text-blue-600">Children</a></li>
-                        <li><a href="business.php" class="text-gray-700 hover:text-blue-600">Business</a></li>
-                        <li><a href="foodNdrink.php" class="text-gray-700 hover:text-blue-600">Food & Drink</a></li>
-                        <li><a href="romance.php" class="text-gray-700 hover:text-blue-600">Romance</a></li>
-                    </ul>
-                </div>
-            </aside>
-
-            <!-- Main Products Section -->
-            <div class="md:w-3/4">
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                        <h1 class="text-2xl font-bold">New Releases</h1>
-                        <div class="flex items-center mt-4 md:mt-0">
-                            <span class="text-gray-600">Showing <?php echo count($new_release_books); ?> results</span>
-                        </div>
-                    </div>
-
-                    <?php if (!empty($search)): ?>
-                        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-                            <p class="text-blue-800">
-                                Search results for: "<strong><?php echo htmlspecialchars($search); ?></strong>"
-                                <a href="newRelease.php" class="text-blue-600 hover:underline ml-4">Clear search</a>
-                            </p>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Product Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <?php foreach ($new_release_books as $book):
-                            // Check if book is in promotion
-                            $is_promotion = $book['is_promotion'] && $book['promotion_price'];
-                            $display_price = $is_promotion ? $book['promotion_price'] : $book['Price'];
-                            $original_price = $is_promotion ? $book['Price'] : null;
-                            $discount = $is_promotion ? round((($book['Price'] - $book['promotion_price']) / $book['Price']) * 100) : 0;
-                        ?>
-                            <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden"
-                                onclick="openProductModal('<?php echo addslashes($book['BookID']); ?>')">
-                                <div class="relative">
-                                    <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">NEW</span>
-                                    <?php if ($is_promotion): ?>
-                                        <span class="absolute top-2 left-14 bg-red-600 text-white text-xs px-2 py-1 rounded">PROMOTION</span>
-                                    <?php endif; ?>
-                                    <img src="<?php echo $book['ImagePath'] ?: 'default-book.jpg'; ?>"
-                                        alt="Book Cover" class="w-full h-64 object-cover">
-                                    <?php if ($book['Quantity'] < 10 && $book['Quantity'] > 0): ?>
-                                        <span class="absolute top-2 right-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded">Low Stock</span>
-                                    <?php elseif ($book['Quantity'] == 0): ?>
-                                        <span class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">Out of Stock</span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-medium text-gray-900 mb-1"><?php echo htmlspecialchars($book['Name']); ?></h3>
-                                    <p class="text-sm text-gray-600 mb-2"><?php echo htmlspecialchars($book['Author']); ?></p>
-                                    <div class="flex items-center mb-2">
-                                        <div class="flex text-yellow-400 text-sm">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star-half-alt"></i>
-                                        </div>
-                                        <span class="text-gray-500 text-xs ml-1">(4.5)</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <span class="<?php echo $is_promotion ? 'text-red-600 font-bold text-lg' : 'font-bold text-gray-900'; ?>">
-                                                RM<?php echo number_format($display_price, 2); ?>
-                                            </span>
-                                            <?php if ($is_promotion && $original_price): ?>
-                                                <span class="text-gray-500 text-sm line-through ml-2">RM<?php echo number_format($original_price, 2); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"><?php echo htmlspecialchars($book['Format']); ?></span>
-                                    </div>
-                                    <?php if ($is_promotion && $discount > 0): ?>
-                                        <div class="mt-2">
-                                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Save <?php echo $discount; ?>%</span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+            <!-- Search Results Grid -->
+            <?php if (!empty($search_query) && $search_count > 0): ?>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <?php foreach ($search_results as $book):
+                        // Check if book is in promotion
+                        $is_promotion = $book['is_promotion'] && $book['promotion_price'];
+                        $display_price = $is_promotion ? $book['promotion_price'] : $book['Price'];
+                        $original_price = $is_promotion ? $book['Price'] : null;
+                        $discount = $is_promotion ? round((($book['Price'] - $book['promotion_price']) / $book['Price']) * 100) : 0;
+                    ?>
+                        <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden mx-auto w-56" onclick="openProductModal('<?php echo addslashes($book['BookID']); ?>')">
+                            <div class="relative">
+                                <?php if ($is_promotion): ?>
+                                    <span class="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">PROMOTION</span>
+                                <?php endif; ?>
+                                <?php if (in_array($book['BookID'], $latest_book_ids)): ?>
+                                    <span class="absolute top-2 <?php echo $is_promotion ? 'left-12' : 'left-2'; ?> bg-red-600 text-white text-xs px-2 py-1 rounded">NEW</span>
+                                <?php endif; ?>
+                                <?php if (in_array($book['BookID'], $bestseller_ids)): ?>
+                                    <span class="absolute top-2 <?php echo ($is_promotion || in_array($book['BookID'], $latest_book_ids)) ? 'right-2' : 'left-2'; ?> bg-yellow-600 text-white text-xs px-2 py-1 rounded">BESTSELLER</span>
+                                <?php endif; ?>
+                                <img src="<?php echo htmlspecialchars($book['ImagePath']); ?>" alt="<?php echo htmlspecialchars($book['Name']); ?> Book Cover" class="w-full h-64 object-cover">
                             </div>
-                        <?php endforeach; ?>
-
-                        <?php if (empty($new_release_books)): ?>
-                            <div class="col-span-3 text-center py-8">
-                                <i class="fas fa-book-open text-4xl text-gray-400 mb-4"></i>
-                                <p class="text-gray-500">No new releases found<?php echo !empty($search) ? ' matching your search' : ''; ?>.</p>
-                                <?php if (!empty($search)): ?>
-                                    <a href="newRelease.php" class="text-blue-600 hover:underline mt-2 inline-block">Browse all new releases</a>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 mb-1"><?php echo htmlspecialchars($book['Name']); ?></h3>
+                                <p class="text-sm text-gray-600 mb-2"><?php echo htmlspecialchars($book['Author']); ?></p>
+                                <div class="flex items-center mb-2">
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
+                                    </div>
+                                    <span class="text-gray-500 text-xs ml-1">(4.0)</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="font-bold text-gray-900">RM<?php echo number_format($display_price, 2); ?></span>
+                                        <?php if ($is_promotion && $original_price): ?>
+                                            <span class="text-gray-500 text-sm line-through ml-2">RM<?php echo number_format($original_price, 2); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php if ($is_promotion && $discount > 0): ?>
+                                    <div class="mt-2">
+                                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Save <?php echo $discount; ?>%</span>
+                                    </div>
                                 <?php endif; ?>
                             </div>
-                        <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php elseif (!empty($search_query)): ?>
+                <!-- No Results State -->
+                <div class="text-center py-12">
+                    <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No books found</h3>
+                    <p class="text-gray-500 mb-6">Try adjusting your search terms or browse our categories.</p>
+                    <div class="flex justify-center space-x-4">
+                        <a href="fiction.php" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Browse Fiction</a>
+                        <a href="bestseller.php" class="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50">View Bestsellers</a>
                     </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
-    </main>
+    </section>
 
     <!-- Product Modal -->
     <div id="productModal" class="modal">
@@ -670,7 +505,7 @@ unset($_SESSION['error']);
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
                         <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
 
@@ -727,21 +562,13 @@ unset($_SESSION['error']);
             panel.classList.toggle('show');
         }
 
-        // Product Modal Functions with DEBUGGING
+        // Product Modal Functions
         function openProductModal(bookId) {
-            console.log('Opening modal for book ID:', bookId);
-
             // Fetch book details from database
             fetch(`get_book_details.php?book_id=${bookId}`)
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(book => {
-                    console.log('Book data received:', book);
-
                     if (book.error) {
-                        console.error('Book error:', book.error);
                         alert('Book not found');
                         return;
                     }
@@ -755,10 +582,8 @@ unset($_SESSION['error']);
                         is_promotion: book.is_promotion,
                         promotion_price: book.promotion_price ? parseFloat(book.promotion_price) : null,
                         image: book.ImagePath,
-                        description: book.Description || 'No description available'
+                        description: book.Description || 'A captivating book that will take you on an unforgettable journey through imagination and adventure.'
                     };
-
-                    console.log('Current product:', currentProduct);
 
                     document.getElementById('modalProductTitle').textContent = book.Name;
                     document.getElementById('modalProductAuthor').textContent = 'By ' + book.Author;
@@ -792,18 +617,11 @@ unset($_SESSION['error']);
                     document.getElementById('modalProductImage').src = book.ImagePath;
                     document.getElementById('productQuantity').value = 1;
 
-                    // DEBUG: Check description
-                    console.log('Book Description from DB:', book.Description);
-                    console.log('Description type:', typeof book.Description);
-                    console.log('Description length:', book.Description ? book.Description.length : 0);
-
-                    // Set the description from database
+                    // Set the description
                     const descriptionElement = document.getElementById('modalProductDescription');
-                    if (book.Description && book.Description.trim() !== '' && book.Description !== null) {
-                        console.log('Setting description from database');
+                    if (book.Description) {
                         descriptionElement.textContent = book.Description;
                     } else {
-                        console.log('Using default description');
                         descriptionElement.textContent = 'A captivating book that will take you on an unforgettable journey through imagination and adventure.';
                     }
 
@@ -812,7 +630,7 @@ unset($_SESSION['error']);
                 })
                 .catch(error => {
                     console.error('Error fetching book details:', error);
-                    alert('Error loading book details. Check console for details.');
+                    alert('Error loading book details');
                 });
         }
 
@@ -930,11 +748,11 @@ unset($_SESSION['error']);
 
             if (cart.length === 0) {
                 cartItems.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
-                <p>Your cart is empty</p>
-            </div>
-        `;
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
+                    <p>Your cart is empty</p>
+                </div>
+            `;
                 cartCount.textContent = '0';
                 cartShippingFee.textContent = 'RM0.00';
                 cartSubtotal.textContent = 'RM0.00';
@@ -946,39 +764,36 @@ unset($_SESSION['error']);
             let subtotal = 0;
             let count = 0;
 
-            // Calculate shipping fee - FREE if subtotal > 200
-            const shippingFee = subtotal > 200 ? 0 : 5.00;
-
             cart.forEach(item => {
                 const itemTotal = item.price * item.quantity;
                 subtotal += itemTotal;
                 count += item.quantity;
 
                 itemsHTML += `
-            <div class="cart-item">
-                <img src="${item.image}" alt="${item.title}">
-                <div class="cart-item-details">
-                    <div class="font-medium text-sm">${item.title}</div>
-                    <div class="text-xs text-gray-600">${item.author}</div>
-                    <div class="flex justify-between text-xs">
-                        <span>RM${item.price.toFixed(2)} x ${item.quantity}</span>
-                        <span class="font-bold">RM${itemTotal.toFixed(2)}</span>
+                <div class="cart-item">
+                    <img src="${item.image}" alt="${item.title}">
+                    <div class="cart-item-details">
+                        <div class="font-medium text-sm">${item.title}</div>
+                        <div class="text-xs text-gray-600">${item.author}</div>
+                        <div class="flex justify-between text-xs">
+                            <span>RM${item.price.toFixed(2)} x ${item.quantity}</span>
+                            <span class="font-bold">RM${itemTotal.toFixed(2)}</span>
+                        </div>
                     </div>
+                    <button onclick="removeFromCart('${item.book_id}', '${item.format}')" class="text-red-500 ml-2">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
-                <button onclick="removeFromCart('${item.book_id}', '${item.format}')" class="text-red-500 ml-2">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
+            `;
             });
 
-            // Recalculate shipping fee after we have the final subtotal
-            const finalShippingFee = subtotal > 200 ? 0 : 5.00;
-            const total = subtotal + finalShippingFee;
+            // Calculate shipping fee - FREE if subtotal > 200
+            const shippingFee = subtotal > 200 ? 0 : 5.00;
+            const total = subtotal + shippingFee;
 
             cartItems.innerHTML = itemsHTML;
             cartCount.textContent = count;
-            cartShippingFee.textContent = finalShippingFee === 0 ? 'FREE' : `RM${finalShippingFee.toFixed(2)}`;
+            cartShippingFee.textContent = shippingFee === 0 ? 'FREE' : `RM${shippingFee.toFixed(2)}`;
             cartSubtotal.textContent = `RM${total.toFixed(2)}`;
             cartSubtotalNav.textContent = `RM${total.toFixed(2)}`;
         }

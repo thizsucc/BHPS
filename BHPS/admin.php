@@ -1,57 +1,102 @@
 <?php
 include 'db_connect.php';
+session_start();
 
-// Calculate metrics from database
-$total_revenue = 0;
-$books_sold = 0;
-$avg_order_value = 0;
+// Get filter parameters
+$date_range = isset($_GET['date_range']) ? $_GET['date_range'] : 'last_30_days';
+$report_type = isset($_GET['report_type']) ? $_GET['report_type'] : 'sales_summary';
+$category_filter = isset($_GET['category']) ? $_GET['category'] : 'all';
 
-// Total Revenue and Books Sold (last 30 days)
+// Calculate date range based on selection
+$date_condition = "";
+switch ($date_range) {
+    case 'last_7_days':
+        $date_condition = "o.order_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+        break;
+    case 'last_30_days':
+        $date_condition = "o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+        break;
+    case 'last_90_days':
+        $date_condition = "o.order_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
+        break;
+    case 'year_to_date':
+        $date_condition = "YEAR(o.order_date) = YEAR(CURDATE())";
+        break;
+    default:
+        $date_condition = "o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+}
+
+// Category filter condition
+$category_condition = "";
+if ($category_filter != 'all') {
+    $category_condition = "AND b.Category = '" . $conn->real_escape_string($category_filter) . "'";
+}
+
+$admin_id = $_SESSION['userID'];
+$admin_name = $_SESSION['name'];
+$admin_jawatan = $_SESSION['jawatan'];
+
+// Total Revenue and Books Sold with filters
 $revenue_sql = "SELECT SUM(b.Price * o.Quantity) as total_revenue, SUM(o.Quantity) as books_sold 
                 FROM `order` o 
                 JOIN book b ON o.BookID = b.BookID 
-                WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
-                AND o.Status != 'cancelled'";
+                WHERE $date_condition 
+                AND o.Status != 'cancelled'
+                $category_condition";
 $revenue_result = $conn->query($revenue_sql);
 if ($revenue_result->num_rows > 0) {
     $row = $revenue_result->fetch_assoc();
     $total_revenue = $row['total_revenue'] ? $row['total_revenue'] : 0;
     $books_sold = $row['books_sold'] ? $row['books_sold'] : 0;
+} else {
+    $total_revenue = 0;
+    $books_sold = 0;
 }
 
-// Average Order Value (last 30 days)
+// Average Order Value with filters
 $avg_sql = "SELECT AVG(b.Price * o.Quantity) as avg_order_value 
             FROM `order` o 
             JOIN book b ON o.BookID = b.BookID 
-            WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
-            AND o.Status != 'cancelled'";
+            WHERE $date_condition 
+            AND o.Status != 'cancelled'
+            $category_condition";
 $avg_result = $conn->query($avg_sql);
 if ($avg_result->num_rows > 0) {
     $row = $avg_result->fetch_assoc();
     $avg_order_value = $row['avg_order_value'] ? round($row['avg_order_value'], 2) : 0;
+} else {
+    $avg_order_value = 0;
 }
 
-// Sales data for chart (last 30 days)
+// Sales data for chart with filters
 $sales_data = array_fill(0, 30, 0);
 $sales_labels = [];
 
-// Generate labels for last 30 days
-for ($i = 29; $i >= 0; $i--) {
-    $sales_labels[] = date('M j', strtotime("-$i days"));
+// Generate labels based on date range
+if ($date_range == 'last_7_days') {
+    for ($i = 6; $i >= 0; $i--) {
+        $sales_labels[] = date('M j', strtotime("-$i days"));
+    }
+} else {
+    for ($i = 29; $i >= 0; $i--) {
+        $sales_labels[] = date('M j', strtotime("-$i days"));
+    }
 }
 
-// Get daily sales data
+// Get daily sales data with filters
+$days = $date_range == 'last_7_days' ? 7 : 30;
 $chart_sql = "SELECT DATE(o.order_date) as sale_date, SUM(b.Price * o.Quantity) as daily_revenue
               FROM `order` o 
               JOIN book b ON o.BookID = b.BookID 
-              WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
+              WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL $days DAY) 
               AND o.Status != 'cancelled'
+              $category_condition
               GROUP BY DATE(o.order_date) 
               ORDER BY sale_date";
 $chart_result = $conn->query($chart_sql);
 
 if ($chart_result->num_rows > 0) {
-    while($row = $chart_result->fetch_assoc()) {
+    while ($row = $chart_result->fetch_assoc()) {
         $date_index = array_search(date('M j', strtotime($row['sale_date'])), $sales_labels);
         if ($date_index !== false) {
             $sales_data[$date_index] = $row['daily_revenue'];
@@ -59,7 +104,7 @@ if ($chart_result->num_rows > 0) {
     }
 }
 
-// Analytics Data - Sales by Category
+// Analytics Data - Sales by Category with filters
 $category_data = [];
 $category_labels = [];
 $category_colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280'];
@@ -68,14 +113,14 @@ $category_sql = "SELECT b.Category, SUM(b.Price * o.Quantity) as category_revenu
                         SUM(o.Quantity) as category_quantity
                  FROM `order` o 
                  JOIN book b ON o.BookID = b.BookID 
-                 WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
+                 WHERE $date_condition 
                  AND o.Status != 'cancelled'
                  GROUP BY b.Category 
                  ORDER BY category_revenue DESC";
 $category_result = $conn->query($category_sql);
 
 if ($category_result->num_rows > 0) {
-    while($row = $category_result->fetch_assoc()) {
+    while ($row = $category_result->fetch_assoc()) {
         $category_labels[] = $row['Category'] ? $row['Category'] : 'Uncategorized';
         $category_data[] = $row['category_revenue'];
     }
@@ -85,19 +130,20 @@ if ($category_result->num_rows > 0) {
     $category_data = [35, 25, 20, 15];
 }
 
-// Top Selling Books for Analytics
+// Top Selling Books for Analytics with filters
 $top_books_sql = "SELECT b.Name, b.Category, SUM(o.Quantity) as total_sold,
                          SUM(b.Price * o.Quantity) as total_revenue
                   FROM `order` o 
                   JOIN book b ON o.BookID = b.BookID 
-                  WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
+                  WHERE $date_condition 
                   AND o.Status != 'cancelled'
+                  $category_condition
                   GROUP BY b.BookID, b.Name, b.Category
                   ORDER BY total_sold DESC 
                   LIMIT 5";
 $top_books_result = $conn->query($top_books_sql);
 
-// Inventory Status
+// Inventory Status (unchanged)
 $inventory_sql = "SELECT 
                     COUNT(*) as total_books,
                     SUM(Quantity) as total_stock,
@@ -110,6 +156,7 @@ $inventory_data = $inventory_result->fetch_assoc();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -126,30 +173,37 @@ $inventory_data = $inventory_result->fetch_assoc();
             display: block;
             pointer-events: none;
         }
+
         .dropdown:hover .dropdown-menu {
             visibility: visible;
             opacity: 1;
             transform: translateY(0);
             pointer-events: auto;
         }
+
         .dropdown:hover .fa-chevron-down {
             transform: rotate(180deg);
         }
+
         .status-pill {
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
         }
+
         .tab-content {
             display: none;
         }
+
         .tab-content.active {
             display: block;
         }
+
         .search-box:focus-within {
             border-color: #3b82f6;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -162,6 +216,7 @@ $inventory_data = $inventory_result->fetch_assoc();
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background: white;
             padding: 30px;
@@ -172,17 +227,35 @@ $inventory_data = $inventory_result->fetch_assoc();
             overflow-y: auto;
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
         }
+
         .chart-container {
             position: relative;
             height: 300px;
             width: 100%;
         }
-        .status-pending { background-color: #fef3c7; color: #d97706; }
-        .status-completed { background-color: #d1fae5; color: #065f46; }
-        .status-shipped { background-color: #dbeafe; color: #1e40af; }
-        .status-cancelled { background-color: #fee2e2; color: #dc2626; }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-shipped {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans">
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
@@ -204,14 +277,14 @@ $inventory_data = $inventory_result->fetch_assoc();
 
                 <!-- User Actions -->
                 <div class="flex items-center space-x-4">
-                    <div class="dropdown relative">
-                        <button class="flex items-center text-gray-700 hover:text-blue-600">
-                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" class="h-8 w-8 rounded-full mr-2">
-                            <span>Admin User</span>
+                    <div class="relative">
+                        <button id="adminDropdownBtn" onclick="toggleAdminDropdown()" class="flex items-center text-gray-700 hover:text-blue-600 focus:outline-none">
+                            <i class="fas fa-user-circle text-xl mr-1"></i>
+                            <span><?php echo htmlspecialchars($admin_name); ?></span>
                             <i class="fas fa-chevron-down ml-1 text-xs transition-transform duration-200"></i>
                         </button>
-                        <div class="dropdown-menu absolute right-0 bg-white shadow-lg rounded mt-2 py-2 w-48 z-50">
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100 transition-colors duration-150">
+                        <div id="adminDropdownMenu" class="absolute right-0 bg-white shadow-lg rounded mt-2 py-2 w-48 z-50" style="display:none;">
+                            <a href="logout.php" class="block px-4 py-2 hover:bg-gray-100 transition-colors duration-150">
                                 <i class="fas fa-sign-out-alt mr-2 text-gray-600"></i>Logout
                             </a>
                         </div>
@@ -239,15 +312,6 @@ $inventory_data = $inventory_result->fetch_assoc();
         <div id="reports-tab" class="tab-content active">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Report Generation</h1>
-                <div class="flex space-x-2">
-                    <div class="relative">
-                        <input type="text" placeholder="Search reports..." class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                    </div>
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>New Report
-                    </button>
-                </div>
             </div>
 
             <!-- Report Filters -->
@@ -255,38 +319,41 @@ $inventory_data = $inventory_result->fetch_assoc();
                 <div class="px-6 py-4 border-b">
                     <h2 class="text-lg font-medium text-gray-800">Report Parameters</h2>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                        <select class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option>Last 7 days</option>
-                            <option selected>Last 30 days</option>
-                            <option>Last 90 days</option>
-                            <option>Year to date</option>
-                            <option>Custom range</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-                        <select class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option selected>Sales Summary</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option>All Categories</option>
-                            <option>Fiction</option>
-                            <option>Non-Fiction</option>
-                            <option>Academic</option>
-                            <option>Children's Books</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                            Generate Report
-                        </button>
-                    </div>
+                <div class="p-6">
+                    <form method="GET" action="admin.php" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                            <select name="date_range" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="last_7_days" <?php echo ($date_range == 'last_7_days') ? 'selected' : ''; ?>>Last 7 days</option>
+                                <option value="last_30_days" <?php echo ($date_range == 'last_30_days' || !isset($_GET['date_range'])) ? 'selected' : ''; ?>>Last 30 days</option>
+                                <option value="last_90_days" <?php echo ($date_range == 'last_90_days') ? 'selected' : ''; ?>>Last 90 days</option>
+                                <option value="year_to_date" <?php echo ($date_range == 'year_to_date') ? 'selected' : ''; ?>>Year to date</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+                            <select name="report_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="sales_summary" <?php echo ($report_type == 'sales_summary' || !isset($_GET['report_type'])) ? 'selected' : ''; ?>>Sales Summary</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select name="category" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="all" <?php echo ($category_filter == 'all' || !isset($_GET['category'])) ? 'selected' : ''; ?>>All Categories</option>
+                                <option value="Fiction" <?php echo ($category_filter == 'Fiction') ? 'selected' : ''; ?>>Fiction</option>
+                                <option value="Children" <?php echo ($category_filter == 'Children') ? 'selected' : ''; ?>>Children</option>
+                                <option value="Academic" <?php echo ($category_filter == 'Academic') ? 'selected' : ''; ?>>Academic</option>
+                                <option value="Business" <?php echo ($category_filter == 'Business') ? 'selected' : ''; ?>>Business</option>
+                                <option value="Food & Drink" <?php echo ($category_filter == 'Food & Drink') ? 'selected' : ''; ?>>Food & Drink</option>
+                                <option value="Romance" <?php echo ($category_filter == 'Romance') ? 'selected' : ''; ?>>Romance</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                                Generate Report
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -335,11 +402,20 @@ $inventory_data = $inventory_result->fetch_assoc();
             <!-- Sales Chart -->
             <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
                 <div class="px-6 py-4 border-b flex justify-between items-center">
-                    <h2 class="text-lg font-medium text-gray-800">Sales Performance (Last 30 Days)</h2>
+                    <h2 class="text-lg font-medium text-gray-800">
+                        Sales Performance
+                        <?php
+                        echo "(" . ucfirst(str_replace('_', ' ', $date_range)) .
+                            ($category_filter != 'all' ? " - " . htmlspecialchars($category_filter) : "") . ")";
+                        ?>
+                    </h2>
                     <div class="flex space-x-2">
-                        <button class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded">7D</button>
-                        <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded">30D</button>
-                        <button class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded">90D</button>
+                        <button class="px-3 py-1 text-xs <?php echo ($date_range == 'last_7_days') ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'; ?> rounded"
+                            onclick="updateDateRange('last_7_days')">7D</button>
+                        <button class="px-3 py-1 text-xs <?php echo ($date_range == 'last_30_days' || !isset($_GET['date_range'])) ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'; ?> rounded"
+                            onclick="updateDateRange('last_30_days')">30D</button>
+                        <button class="px-3 py-1 text-xs <?php echo ($date_range == 'last_90_days') ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'; ?> rounded"
+                            onclick="updateDateRange('last_90_days')">90D</button>
                     </div>
                 </div>
                 <div class="p-6">
@@ -372,18 +448,27 @@ $inventory_data = $inventory_result->fetch_assoc();
                             // Fetch orders from database
                             $sql = "SELECT * FROM `order` ORDER BY order_date DESC LIMIT 10";
                             $result = $conn->query($sql);
-                            
+
                             if ($result->num_rows > 0) {
-                                while($row = $result->fetch_assoc()) {
+                                while ($row = $result->fetch_assoc()) {
                                     $status_class = "";
-                                    switch(strtolower($row["Status"])) {
-                                        case "pending": $status_class = "status-pending"; break;
-                                        case "completed": $status_class = "status-completed"; break;
-                                        case "shipped": $status_class = "status-shipped"; break;
-                                        case "cancelled": $status_class = "status-cancelled"; break;
-                                        default: $status_class = "status-pending";
+                                    switch (strtolower($row["Status"])) {
+                                        case "pending":
+                                            $status_class = "status-pending";
+                                            break;
+                                        case "completed":
+                                            $status_class = "status-completed";
+                                            break;
+                                        case "shipped":
+                                            $status_class = "status-shipped";
+                                            break;
+                                        case "cancelled":
+                                            $status_class = "status-cancelled";
+                                            break;
+                                        default:
+                                            $status_class = "status-pending";
                                     }
-                                    
+
                                     echo "<tr>";
                                     echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["OrderID"] . "</td>";
                                     echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["BookID"] . "</td>";
@@ -408,38 +493,39 @@ $inventory_data = $inventory_result->fetch_assoc();
                 <div class="px-6 py-4 border-b">
                     <h2 class="text-lg font-medium text-gray-800">Report Actions</h2>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-blue-50 p-4 rounded-lg text-center">
-                        <div class="bg-blue-100 p-3 rounded-full inline-flex mb-3">
-                            <i class="fas fa-file-pdf text-blue-600 text-2xl"></i>
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row gap-6 justify-center">
+                        <div class="bg-blue-50 p-6 rounded-lg text-center flex-1 max-w-md">
+                            <div class="bg-blue-100 p-3 rounded-full inline-flex mb-4">
+                                <i class="fas fa-file-pdf text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 class="font-medium text-blue-800 mb-2">Export as PDF</h3>
+                            <p class="text-sm text-blue-600 mb-4">Download a printable PDF version of this report</p>
+                            <form action="download_sales_pdf.php" method="GET">
+                                <input type="hidden" name="date_range" value="<?php echo htmlspecialchars($date_range); ?>">
+                                <input type="hidden" name="category" value="<?php echo htmlspecialchars($category_filter); ?>">
+                                <input type="hidden" name="report_type" value="<?php echo htmlspecialchars($report_type); ?>">
+                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 w-full">
+                                    Download PDF
+                                </button>
+                            </form>
                         </div>
-                        <h3 class="font-medium text-blue-800 mb-1">Export as PDF</h3>
-                        <p class="text-sm text-blue-600 mb-3">Download a printable PDF version of this report</p>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-                            Download PDF
-                        </button>
-                    </div>
 
-                    <div class="bg-green-50 p-4 rounded-lg text-center">
-                        <div class="bg-green-100 p-3 rounded-full inline-flex mb-3">
-                            <i class="fas fa-file-excel text-green-600 text-2xl"></i>
+                        <div class="bg-green-50 p-6 rounded-lg text-center flex-1 max-w-md">
+                            <div class="bg-green-100 p-3 rounded-full inline-flex mb-4">
+                                <i class="fas fa-file-excel text-green-600 text-2xl"></i>
+                            </div>
+                            <h3 class="font-medium text-green-800 mb-2">Export as Excel</h3>
+                            <p class="text-sm text-green-600 mb-4">Download an Excel spreadsheet for further analysis</p>
+                            <form action="download_report.php" method="POST">
+                                <input type="hidden" name="date_range" value="<?php echo htmlspecialchars($date_range); ?>">
+                                <input type="hidden" name="category" value="<?php echo htmlspecialchars($category_filter); ?>">
+                                <input type="hidden" name="report_type" value="<?php echo htmlspecialchars($report_type); ?>">
+                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 w-full">
+                                    Download Excel
+                                </button>
+                            </form>
                         </div>
-                        <h3 class="font-medium text-green-800 mb-1">Export as Excel</h3>
-                        <p class="text-sm text-green-600 mb-3">Download an Excel spreadsheet for further analysis</p>
-                        <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">
-                            Download Excel
-                        </button>
-                    </div>
-
-                    <div class="bg-purple-50 p-4 rounded-lg text-center">
-                        <div class="bg-purple-100 p-3 rounded-full inline-flex mb-3">
-                            <i class="fas fa-share-alt text-purple-600 text-2xl"></i>
-                        </div>
-                        <h3 class="font-medium text-purple-800 mb-1">Share Report</h3>
-                        <p class="text-sm text-purple-600 mb-3">Share this report with other team members</p>
-                        <button class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700">
-                            Share Now
-                        </button>
                     </div>
                 </div>
             </div>
@@ -450,10 +536,6 @@ $inventory_data = $inventory_result->fetch_assoc();
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Sales Analytics</h1>
                 <div class="flex space-x-2">
-                    <div class="relative">
-                        <input type="text" placeholder="Search analytics..." class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                    </div>
                     <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                         <i class="fas fa-download mr-2"></i>Export Data
                     </button>
@@ -475,7 +557,7 @@ $inventory_data = $inventory_result->fetch_assoc();
             </div>
 
             <!-- Top Selling Books -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="bg-white rounded-lg shadowSm overflow-hidden mb-8">
                 <div class="px-6 py-4 border-b">
                     <h2 class="text-lg font-medium text-gray-800">Top Selling Books (Last 30 Days)</h2>
                 </div>
@@ -492,7 +574,7 @@ $inventory_data = $inventory_result->fetch_assoc();
                         <tbody class="divide-y divide-gray-200">
                             <?php
                             if ($top_books_result->num_rows > 0) {
-                                while($row = $top_books_result->fetch_assoc()) {
+                                while ($row = $top_books_result->fetch_assoc()) {
                                     echo "<tr>";
                                     echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . $row["Name"] . "</td>";
                                     echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . $row["Category"] . "</td>";
@@ -607,9 +689,9 @@ $inventory_data = $inventory_result->fetch_assoc();
                         <a href="#" class="text-gray-400 hover:text-white">
                             <i class="fab fa-youtube"></i>
                         </a>
-                    </div>  
+                    </div>
                 </div>
-                
+
                 <!-- Quick Links -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
@@ -620,7 +702,7 @@ $inventory_data = $inventory_result->fetch_assoc();
                         <li><a href="#" class="text-gray-400 hover:text-white">Promotions</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Customer Service -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
@@ -629,7 +711,7 @@ $inventory_data = $inventory_result->fetch_assoc();
                         <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Contact -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Contact Us</h3>
@@ -649,7 +731,7 @@ $inventory_data = $inventory_result->fetch_assoc();
                     </ul>
                 </div>
             </div>
-            
+
             <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
                 <p class="text-gray-400 mb-4 md:mb-0">© 2025 Book Heaven. All rights reserved.</p>
                 <div class="flex space-x-6">
@@ -659,24 +741,24 @@ $inventory_data = $inventory_result->fetch_assoc();
             </div>
         </div>
     </footer>
-
+    <!--JavaScript -->
     <script>
         // Tab functionality
         document.addEventListener('DOMContentLoaded', function() {
             const tabLinks = document.querySelectorAll('.tab-link');
             const tabContents = document.querySelectorAll('.tab-content');
-            
+
             tabLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
-                    
+
                     // Remove active class from all tabs
                     tabLinks.forEach(tab => tab.querySelector('a').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600'));
                     tabContents.forEach(content => content.classList.remove('active'));
-                    
+
                     // Add active class to clicked tab
                     this.querySelector('a').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-                    
+
                     // Show corresponding content
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(`${tabId}-tab`).classList.add('active');
@@ -760,6 +842,35 @@ $inventory_data = $inventory_result->fetch_assoc();
         function shareReport() {
             alert('Sharing report with team members...');
         }
+
+        // Toggle admin dropdown menu on click
+        function toggleAdminDropdown() {
+            const menu = document.getElementById('adminDropdownMenu');
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        }
+        // Close dropdown if clicking outside
+        document.addEventListener('click', function(event) {
+            const btn = document.getElementById('adminDropdownBtn');
+            const menu = document.getElementById('adminDropdownMenu');
+            if (!btn.contains(event.target) && !menu.contains(event.target)) {
+                menu.style.display = 'none';
+            }
+        });
+
+        // Update date range quickly
+        function updateDateRange(range) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('date_range', range);
+            window.location.href = url.toString();
+        }
+
+        // Update category quickly
+        function updateCategory(category) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('category', category);
+            window.location.href = url.toString();
+        }
     </script>
 </body>
+
 </html>

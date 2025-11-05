@@ -31,6 +31,7 @@ $orders_query = $conn->query("
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,6 +45,7 @@ $orders_query = $conn->query("
             font-size: 12px;
             font-weight: 500;
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -56,6 +58,7 @@ $orders_query = $conn->query("
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background: white;
             padding: 30px;
@@ -66,12 +69,29 @@ $orders_query = $conn->query("
             overflow-y: auto;
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
         }
-        .status-processing { background: #fff3cd; color: #856404; }
-        .status-delivery { background: #d1edff; color: #004085; }
-        .status-completed { background: #d4edda; color: #155724; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
+
+        .status-processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-delivery {
+            background: #d1edff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans">
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
@@ -108,7 +128,7 @@ $orders_query = $conn->query("
                     <li><a href="staff.php" class="text-gray-800 hover:text-blue-600 font-medium">Dashboard</a></li>
                     <li><a href="orders.php" class="text-blue-600 font-medium border-b-2 border-blue-600 pb-1">Orders</a></li>
                     <li><a href="books.php" class="text-gray-800 hover:text-blue-600 font-medium">Books</a></li>
-                    <li><a href="customers.php" class="text-gray-800 hover:text-blue-600 font-medium">Customers</a></li>
+                    <li><a href="promotion_management.php" class="text-gray-800 hover:text-blue-600 font-medium">Promotion</a></li>
                     <li><a href="reports.php" class="text-gray-800 hover:text-blue-600 font-medium">Reports</a></li>
                 </ul>
             </nav>
@@ -148,37 +168,37 @@ $orders_query = $conn->query("
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <?php while ($order = $orders_query->fetch_assoc()): ?>
-                        <tr>
-                            <td class="px-2 py-2 whitespace-nowrap font-medium text-gray-900">#<?php echo $order['OrderID']; ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">#<?php echo $order['User_ID']; ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap">
-                                <div class="flex items-center space-x-2">
-                                    <img src="<?php echo $order['ImagePath'] ?: 'default-book.jpg'; ?>" alt="Book Cover" class="h-8 w-8 object-cover rounded">
-                                    <span class="text-xs font-medium text-gray-900"><?php echo htmlspecialchars($order['book_name']); ?></span>
-                                </div>
-                            </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Author']); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Category']); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Format']); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo $order['Quantity']; ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">RM <?php echo number_format($order['Total_Amount'], 2); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo date('M j, Y', strtotime($order['order_date'])); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap">
-                                <form method="POST" class="inline">
-                                    <input type="hidden" name="order_id" value="<?php echo $order['OrderID']; ?>">
-                                    <select name="status" onchange="this.form.submit()" class="status-pill <?php echo getStatusClass($order['Status']); ?> border-0 cursor-pointer text-xs">
-                                        <option value="Processing" <?php echo $order['Status'] == 'Processing' ? 'selected' : ''; ?>>Processing</option>
-                                        <option value="Delivery" <?php echo $order['Status'] == 'Delivery' ? 'selected' : ''; ?>>Delivery</option>
-                                        <option value="Completed" <?php echo $order['Status'] == 'Completed' ? 'selected' : ''; ?>>Completed</option>
-                                        <option value="Cancelled" <?php echo $order['Status'] == 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
-                                    </select>
-                                </form>
-                            </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 max-w-xs truncate"><?php echo htmlspecialchars($order['address']); ?></td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs font-medium">
-                                <button class="bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200" onclick="openOrderDetail(<?php echo $order['OrderID']; ?>)">View</button>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td class="px-2 py-2 whitespace-nowrap font-medium text-gray-900">#<?php echo $order['OrderID']; ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">#<?php echo $order['User_ID']; ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap">
+                                    <div class="flex items-center space-x-2">
+                                        <img src="<?php echo $order['ImagePath'] ?: 'default-book.jpg'; ?>" alt="Book Cover" class="h-8 w-8 object-cover rounded">
+                                        <span class="text-xs font-medium text-gray-900"><?php echo htmlspecialchars($order['book_name']); ?></span>
+                                    </div>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Author']); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Category']); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo htmlspecialchars($order['Format']); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo $order['Quantity']; ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">RM <?php echo number_format($order['Total_Amount'], 2); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900"><?php echo date('M j, Y', strtotime($order['order_date'])); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap">
+                                    <form method="POST" class="inline">
+                                        <input type="hidden" name="order_id" value="<?php echo $order['OrderID']; ?>">
+                                        <select name="status" onchange="this.form.submit()" class="status-pill <?php echo getStatusClass($order['Status']); ?> border-0 cursor-pointer text-xs">
+                                            <option value="Processing" <?php echo $order['Status'] == 'Processing' ? 'selected' : ''; ?>>Processing</option>
+                                            <option value="Delivery" <?php echo $order['Status'] == 'Delivery' ? 'selected' : ''; ?>>Delivery</option>
+                                            <option value="Completed" <?php echo $order['Status'] == 'Completed' ? 'selected' : ''; ?>>Completed</option>
+                                            <option value="Cancelled" <?php echo $order['Status'] == 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 max-w-xs truncate"><?php echo htmlspecialchars($order['address']); ?></td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                                    <button class="bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200" onclick="openOrderDetail(<?php echo $order['OrderID']; ?>)">View</button>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
@@ -191,54 +211,52 @@ $orders_query = $conn->query("
             <?php endif; ?>
         </div>
 
-    <!-- Order Detail Modal -->
-    <div id="orderDetailModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header flex justify-between items-center mb-4 pb-2 border-b">
-                <h2 class="text-xl font-bold text-gray-800">Order Details</h2>
-                <span class="close text-2xl cursor-pointer" onclick="closeModal('orderDetailModal')">&times;</span>
-            </div>
-            <div id="orderDetailContent">
-                <!-- Content will be filled by JavaScript -->
+        <!-- Order Detail Modal -->
+        <div id="orderDetailModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-xl font-bold text-gray-800">Order Details</h2>
+                    <span class="close text-2xl cursor-pointer" onclick="closeModal('orderDetailModal')">&times;</span>
+                </div>
+                <div id="orderDetailContent">
+                    <!-- Content will be filled by JavaScript -->
+                </div>
             </div>
         </div>
-    </div>
 
-    <script>
-    // Toggle staff dropdown menu on click
-    function toggleStaffDropdown() {
-        const menu = document.getElementById('staffDropdownMenu');
-        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
-    }
-    // Close dropdown if clicking outside
-    document.addEventListener('click', function(event) {
-        const btn = document.getElementById('staffDropdownBtn');
-        const menu = document.getElementById('staffDropdownMenu');
-        if (!btn.contains(event.target) && !menu.contains(event.target)) {
-            menu.style.display = 'none';
-        }
-    });
-        // Open order detail modal (sync logic with staff.php)
-        function openOrderDetail(orderId) {
-            fetch('get_order_details.php?order_id=' + orderId)
-                .then(response => response.json())
-                .then(order => {
-                    if (order.error) {
-                        alert(order.error);
-                        return;
-                    }
-                    
-                    // Format the order date
-                    const orderDate = new Date(order.order_date);
-                    const formattedDate = orderDate.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    
-                    const detailHtml = `
+        <script>
+            // Toggle staff dropdown menu on click
+            function toggleStaffDropdown() {
+                const menu = document.getElementById('staffDropdownMenu');
+                menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+            }
+            // Close dropdown if clicking outside
+            document.addEventListener('click', function(event) {
+                const btn = document.getElementById('staffDropdownBtn');
+                const menu = document.getElementById('staffDropdownMenu');
+                if (!btn.contains(event.target) && !menu.contains(event.target)) {
+                    menu.style.display = 'none';
+                }
+            });
+            // Open order detail modal (sync logic with staff.php)
+            function openOrderDetail(orderId) {
+                fetch('get_order_details.php?order_id=' + orderId)
+                    .then(response => response.json())
+                    .then(order => {
+                        if (order.error) {
+                            alert(order.error);
+                            return;
+                        }
+
+                        // Format the order date
+                        const orderDate = new Date(order.order_date);
+                        const formattedDate = orderDate.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        });
+
+                        const detailHtml = `
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-3">Order Information</h3>
                             <div class="bg-gray-50 p-4 rounded-lg">
@@ -288,9 +306,6 @@ $orders_query = $conn->query("
                                             <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">${order.Format || 'No format'}</span>
                                             <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Book ID: ${order.BookID || 'N/A'}</span>
                                         </div>
-                                        <div class="mt-2">
-                                            <p class="text-sm text-gray-600">Unit Price: RM ${parseFloat(order.book_price || 0).toFixed(2)}</p>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -304,53 +319,65 @@ $orders_query = $conn->query("
                             </div>
                         </div>
                     `;
-                    
-                    document.getElementById('orderDetailContent').innerHTML = detailHtml;
-                    document.getElementById('orderDetailModal').style.display = 'flex';
-                })
-                .catch(error => {
-                    console.error('Error fetching order details:', error);
-                    alert('Error loading order details. Please try again.');
-                });
-        }
 
-        // Function for status classes
-        function getStatusClass(status) {
-            switch(status.toLowerCase()) {
-                case 'processing': return 'status-processing';
-                case 'delivery': return 'status-delivery';
-                case 'completed': return 'status-completed';
-                case 'cancelled': return 'status-cancelled';
-                default: return 'bg-gray-100 text-gray-800';
+                        document.getElementById('orderDetailContent').innerHTML = detailHtml;
+                        document.getElementById('orderDetailModal').style.display = 'flex';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching order details:', error);
+                        alert('Error loading order details. Please try again.');
+                    });
             }
-        }
 
-        // Close modal
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.style.display = 'none';
-                });
+            // Function for status classes
+            function getStatusClass(status) {
+                switch (status.toLowerCase()) {
+                    case 'processing':
+                        return 'status-processing';
+                    case 'delivery':
+                        return 'status-delivery';
+                    case 'completed':
+                        return 'status-completed';
+                    case 'cancelled':
+                        return 'status-cancelled';
+                    default:
+                        return 'bg-gray-100 text-gray-800';
+                }
             }
-        };
-    </script>
+
+            // Close modal
+            function closeModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+            }
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal')) {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                }
+            };
+        </script>
 </body>
+
 </html>
 
 <?php
 // Helper functions
-function getStatusClass($status) {
-    switch(strtolower($status)) {
-        case 'processing': return 'status-processing';
-        case 'delivery': return 'status-delivery';
-        case 'completed': return 'status-completed';
-        case 'cancelled': return 'status-cancelled';
-        default: return 'bg-gray-100 text-gray-800';
+function getStatusClass($status)
+{
+    switch (strtolower($status)) {
+        case 'processing':
+            return 'status-processing';
+        case 'delivery':
+            return 'status-delivery';
+        case 'completed':
+            return 'status-completed';
+        case 'cancelled':
+            return 'status-cancelled';
+        default:
+            return 'bg-gray-100 text-gray-800';
     }
 }
 ?>
