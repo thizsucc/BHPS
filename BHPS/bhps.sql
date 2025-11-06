@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 30, 2025 at 05:01 PM
+-- Generation Time: Nov 03, 2025 at 04:32 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -164,24 +164,24 @@ CREATE TABLE `order` (
 --
 
 INSERT INTO `order` (`OrderItemID`, `OrderID`, `BookID`, `order_date`, `address`, `Quantity`, `User_ID`, `Status`, `Total_Amount`, `payment_method`, `card_number`, `bank_name`) VALUES
-(1, '843006', 'B029', '2025-10-15', '1234dfghfb', 1, 'user002', 'Completed', 35.00, 'bank', '', 'Maybank2u'),
-(2, '952641', 'B029', '2025-10-15', '1234dfghfb', 1, 'user002', 'Completed', 35.00, 'bank', '', 'Agrobank'),
-(3, '909334', 'B008', '2025-10-15', '1234dfghfb', 1, 'user002', 'Delivery', 25.00, 'bank', '', 'Agrobank'),
-(4, '775278', 'E002', '2025-10-15', '1234dfghfb', 1, 'user001', 'Processing', 20.00, 'card', '2345 6789 8765 4323', ''),
-(5, '408349', 'B015', '2025-10-15', '1234dfghfb', 1, 'user003', 'Delivery', 49.90, 'card', '4567 8765 4323 4448', ''),
-(6, '408349', 'B030', '2025-10-15', '1234dfghfb', 1, 'user003', 'Delivery', 47.90, 'card', '4567 8765 4323 4448', ''),
-(7, '807890', 'B027', '2025-10-15', '1234dfghfb', 1, 'user003', 'Cancelled', 49.90, 'bank', '', 'CIMB Clicks'),
-(8, '874173', 'B036', '2025-10-15', '1234dfghfb', 1, 'user001', 'Processing', 25.00, 'bank', '', 'Maybank2u'),
-(9, '874173', 'E004', '2025-10-15', '1234dfghfb', 1, 'user001', 'Processing', 20.00, 'bank', '', 'Maybank2u'),
-(10, '431245', 'B010', '2025-10-23', '567ssdfgktuunb', 1, 'user001', 'Completed', 48.50, 'bank', '', 'Agrobank'),
-(11, '431245', 'B042', '2025-10-23', '567ssdfgktuunb', 1, 'user001', 'Completed', 47.90, 'bank', '', 'Agrobank'),
-(12, '431245', 'B018', '2025-10-23', '567ssdfgktuunb', 1, 'user001', 'Completed', 55.20, 'bank', '', 'Agrobank'),
-(13, '276207', 'B015', '2025-10-27', '567ssdfgktuunb', 1, 'user001', 'Processing', 49.90, 'bank', '', 'CIMB Clicks'),
-(14, '250107', 'B042', '2025-10-27', '567ssdfgktuunb', 1, 'user001', 'Processing', 47.90, 'card', '3456 7898 7643 7256', ''),
-(15, '272798', 'B033', '2025-10-27', '567ssdfgktuunb', 1, 'user001', 'Processing', 55.20, 'bank', '', 'Maybank2u'),
-(16, '601408', 'B008', '2025-10-29', '567ssdfgktuunb', 2, 'user001', 'Processing', 50.00, 'card', '1234 5698 7654 3214', ''),
-(17, '601408', 'B025', '2025-10-29', '567ssdfgktuunb', 1, 'user001', 'Processing', 52.90, 'card', '1234 5698 7654 3214', ''),
-(18, '202745', 'B026', '2025-10-29', '567ssdfgktuunb', 1, 'user002', 'Processing', 48.50, 'bank', '', 'Agrobank'),
+(1, '843006', 'B029', '2025-10-15', '21,Jalan No123, Taman melaka, 434653, Melaka', 1, 'user002', 'Completed', 35.00, 'bank', '', 'Maybank2u'),
+(2, '952641', 'B029', '2025-10-15', 'No 1, Jalan Bunga Pudding, Apartment Ali, 77000, Melaka', 1, 'user002', 'Completed', 35.00, 'bank', '', 'Agrobank'),
+(3, '909334', 'B008', '2025-10-15', 'No 12, Jalan Bunga Pudding, Apartment Ali, 77000, Melaka', 1, 'user002', 'Delivery', 25.00, 'bank', '', 'Agrobank'),
+(4, '775278', 'E002', '2025-10-15', 'Block A, Jalan tun Ali, Apartment Ali, 77000, Melaka', 1, 'user001', 'Processing', 20.00, 'card', '2345 6789 8765 4323', ''),
+(5, '408349', 'B015', '2025-10-15', '435, Jalan Idamai, Taman Berjaya, 56100, KL', 1, 'user003', 'Delivery', 49.90, 'card', '4567 8765 4323 4448', ''),
+(6, '408349', 'B030', '2025-10-15', 'No 11, Jalan Berjaya, Apartment Berjaya, 56100, Cheras', 1, 'user003', 'Delivery', 47.90, 'card', '4567 8765 4323 4448', ''),
+(7, '807890', 'B027', '2025-10-15', 'No 10, Jalan Bunga Pudding, Apartment Ali, 77000, Melaka', 1, 'user003', 'Cancelled', 49.90, 'bank', '', 'CIMB Clicks'),
+(8, '874173', 'B036', '2025-10-15', '36, Jalan NO425, Taman Laut, 56100, Kuala Lumpur', 1, 'user001', 'Processing', 25.00, 'bank', '', 'Maybank2u'),
+(9, '874173', 'E004', '2025-10-15', '201, Jalan Indah, Taman Indah, 56100, Kuala Lumpur', 1, 'user001', 'Processing', 20.00, 'bank', '', 'Maybank2u'),
+(10, '431245', 'B010', '2025-10-23', '36, Jalan NO425, Taman Laut, 56100, Kuala Lumpur', 1, 'user001', 'Completed', 48.50, 'bank', '', 'Agrobank'),
+(11, '431245', 'B042', '2025-10-23', '56, Jalan Meriah, Taman Sahabat, 81200, Johor Baru, Johor', 1, 'user001', 'Completed', 47.90, 'bank', '', 'Agrobank'),
+(12, '431245', 'B018', '2025-10-23', '21, Jalan NO582, Apartment Seri Sahabat, 56100, Kuala Lumpur', 1, 'user001', 'Completed', 55.20, 'bank', '', 'Agrobank'),
+(13, '276207', 'B015', '2025-10-27', '55, Jalan Baik Hati, Taman Nilai, 83000, Johor', 1, 'user001', 'Processing', 49.90, 'bank', '', 'CIMB Clicks'),
+(14, '250107', 'B042', '2025-10-27', '21,Jalan Panadol, Taman Panadol, 68000, KL', 1, 'user001', 'Processing', 47.90, 'card', '3456 7898 7643 7256', ''),
+(15, '272798', 'B033', '2025-10-27', '83, Jalan meriah, Taman Subang, 56100, Kuala Lumpur', 1, 'user001', 'Processing', 55.20, 'bank', '', 'Maybank2u'),
+(16, '601408', 'B008', '2025-10-29', 'No12, Block B, Jalan Hang Tuah, 72100, Melaka', 2, 'user001', 'Processing', 50.00, 'card', '1234 5698 7654 3214', ''),
+(17, '601408', 'B025', '2025-10-29', 'No18, Block B, Jalan Hang Tuah, 72100, Melaka', 1, 'user001', 'Processing', 52.90, 'card', '1234 5698 7654 3214', ''),
+(18, '202745', 'B026', '2025-10-29', 'No29, Block B, Jalan Hang Tuah, 72100, Melaka', 1, 'user002', 'Processing', 48.50, 'bank', '', 'Agrobank'),
 (19, '128841', 'E004', '2025-10-29', 'No25,Jalan Bunga Bangsar, Taman Melaka Raya, 77125, Melaka Raya, Melaka', 1, 'user003', 'Processing', 18.00, 'card', '2467 9976 5339 9925', ''),
 (20, '128841', 'B036', '2025-10-29', 'No25,Jalan Bunga Bangsar, Taman Melaka Raya, 77125, Melaka Raya, Melaka', 1, 'user003', 'Processing', 25.00, 'card', '2467 9976 5339 9925', ''),
 (21, '128841', 'B004', '2025-10-29', 'No25,Jalan Bunga Bangsar, Taman Melaka Raya, 77125, Melaka Raya, Melaka', 1, 'user003', 'Processing', 55.20, 'card', '2467 9976 5339 9925', ''),
@@ -222,6 +222,7 @@ INSERT INTO `staff` (`StaffID`, `Staff_Name`, `Jawatan`, `Password`) VALUES
 CREATE TABLE `user` (
   `User_ID` varchar(200) NOT NULL,
   `user_Name` varchar(200) NOT NULL,
+  `EmailAddress` varchar(200) NOT NULL,
   `address` varchar(200) NOT NULL,
   `FirstName` varchar(200) NOT NULL,
   `LastName` varchar(200) NOT NULL,
@@ -232,10 +233,12 @@ CREATE TABLE `user` (
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`User_ID`, `user_Name`, `address`, `FirstName`, `LastName`, `Password`) VALUES
-('user001', 'cheikahyan', '', 'chei', 'kah yan', '$2y$10$5/brlLEPtkPFcP5amfq3/O7knY4eg5QOTpHxa1O5TVfjRH1m.WPCC'),
-('user002', 'huda', '', 'huda', 'huda', '$2y$10$PJdyXQlJOTigvuWspLect.xzXFGH843XsBEAHafM3e8hEZDJmIizq'),
-('user003', 'hilmi', '', 'hilmi', 'hilmi', '$2y$10$mUC1QWbtEmqseWJXAwWBaecB6Dow8fbst5mLCS3.IuYn6cSVTdvkm');
+INSERT INTO `user` (`User_ID`, `user_Name`, `EmailAddress`, `address`, `FirstName`, `LastName`, `Password`) VALUES
+('user001', 'cheikahyan', 'cheikahyan@gmail.com', '', 'chei', 'kah yan', '$2y$10$5/brlLEPtkPFcP5amfq3/O7knY4eg5QOTpHxa1O5TVfjRH1m.WPCC'),
+('user002', 'huda', 'huda@gmail.com', '', 'huda', 'huda', '$2y$10$PJdyXQlJOTigvuWspLect.xzXFGH843XsBEAHafM3e8hEZDJmIizq'),
+('user003', 'hilmi', 'hilmi@gmail.com', '', 'hilmi', 'hilmi', '$2y$10$mUC1QWbtEmqseWJXAwWBaecB6Dow8fbst5mLCS3.IuYn6cSVTdvkm'),
+('user004', 'Rifqah', 'rifqah@gmail.com', '', 'Rifqah', 'Rifqah', '$2y$10$opzuh6JfRph81DYbuKLjzObEPOXeNrYI9KUjyz/h8MOPAEwo4oZ7.'),
+('user005', 'tohkhimtat', 'tohkhimtat@gmail.com', '', 'Toh', 'Khim Tat', '$2y$10$m2bVsQv0l/DAErTHCZ03kuU/sICDYbQsAWj/ALgjcP4D7bH7wTZDO');
 
 --
 -- Indexes for dumped tables
