@@ -414,7 +414,8 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
 </section>
 
 <!-- New Releases -->
-<section class="py-12 bg-white">
+<section class="py-12"     
+    style="background: url('img/sitebg.gif')">
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-3xl font-bold">New Releases</h2>
@@ -1027,5 +1028,6 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
     });
 </script>
 </body>
+
 
 </html>
