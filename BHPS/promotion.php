@@ -417,7 +417,7 @@ unset($_SESSION['error']);
                     <li><a href="newRelease.php" class="text-gray-800 hover:text-blue-600 font-medium">New Releases</a></li>
                     <li><a href="bestseller.php" class="text-gray-800 hover:text-blue-600 font-medium">Bestsellers</a></li>
                     <li><a href="promotion.php" class="text-blue-600 hover:text-blue-800 font-medium">Promotions</a></li>
-                    <li><a href="about.html" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
+                    <li><a href="about.php" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
                 </ul>
             </nav>
         </div>
@@ -1041,5 +1041,6 @@ unset($_SESSION['error']);
         });
     </script>
 </body>
+
 
 </html>
