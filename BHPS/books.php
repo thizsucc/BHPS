@@ -13,7 +13,7 @@ $staff_id = $_SESSION['userID'];
 $staff_name = $_SESSION['name'];
 $staff_jawatan = $_SESSION['jawatan'];
 
-// Define categories and formats (for the edit modal)
+// Define categories and formats
 $categories = ["Fiction", "Business", "Children", "Academic", "Food & Drink", "Romance"];
 $formats = ["Physical", "E-book"];
 
@@ -27,7 +27,7 @@ if (!empty($search)) {
 // Fetch books with search filter
 $books_query = $conn->query("SELECT * FROM book $where ORDER BY BookID DESC");
 
-// Handle form submissions for updating and deleting books (similar to staff.php)
+// Handle form submissions for updating and deleting books
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['update_book'])) {
         $old_book_id = $_POST['old_book_id'];
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $quantity = $_POST['editBookStock'];
         $description = $_POST['editBookDescription'];
 
-        // Check if new Book ID already exists (if it's different from old one)
+        // Check if new Book ID already exists
         if ($new_book_id != $old_book_id) {
             $check_query = $conn->prepare("SELECT * FROM book WHERE BookID = ?");
             $check_query->bind_param("s", $new_book_id);
@@ -231,7 +231,7 @@ unset($_SESSION['error']);
                     <li><a href="orders.php" class="text-gray-800 hover:text-blue-600 font-medium">Orders</a></li>
                     <li><a href="books.php" class="text-blue-600 font-medium border-b-2 border-blue-600 pb-1">Books</a></li>
                     <li><a href="promotion_management.php" class="text-gray-800 hover:text-blue-600 font-medium">Promotion</a></li>
-                    <li><a href="reports.php" class="text-gray-800 hover:text-blue-600 font-medium">Reports</a></li>
+                    <li><a href="download_report.php" class="text-gray-800 hover:text-blue-600 font-medium">Reports</a></li>
                 </ul>
             </nav>
         </div>
@@ -496,7 +496,7 @@ unset($_SESSION['error']);
         <input type="hidden" name="delete_book">
     </form>
 
-    <!-- Footer (same as staff.php) -->
+    <!-- Footer -->
     <footer class="bg-gray-900 text-white pt-12 pb-6">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
@@ -532,8 +532,8 @@ unset($_SESSION['error']);
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
 
