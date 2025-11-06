@@ -7,6 +7,35 @@ $date_range = isset($_GET['date_range']) ? $_GET['date_range'] : 'last_30_days';
 $report_type = isset($_GET['report_type']) ? $_GET['report_type'] : 'sales_summary';
 $category_filter = isset($_GET['category']) ? $_GET['category'] : 'all';
 
+// Staff Management Actions
+if (isset($_POST['add_staff'])) {
+    $staff_id = $_POST['staff_id'];
+    $staff_name = $_POST['staff_name'];
+    $jawatan = $_POST['jawatan'];
+    $password = $_POST['password'];
+
+    $sql = "INSERT INTO staff (StaffID, Staff_Name, Jawatan, Password) 
+            VALUES ('$staff_id', '$staff_name', '$jawatan', '$password')";
+    $conn->query($sql);
+}
+
+if (isset($_POST['edit_staff'])) {
+    $staff_id = $_POST['staff_id'];
+    $staff_name = $_POST['staff_name'];
+    $jawatan = $_POST['jawatan'];
+    $password = $_POST['password'];
+
+    $sql = "UPDATE staff SET Staff_Name='$staff_name', Jawatan='$jawatan', Password='$password' 
+            WHERE StaffID='$staff_id'";
+    $conn->query($sql);
+}
+
+if (isset($_GET['delete_staff'])) {
+    $staff_id = $_GET['delete_staff'];
+    $sql = "DELETE FROM staff WHERE StaffID='$staff_id'";
+    $conn->query($sql);
+}
+
 // Calculate date range based on selection
 $date_condition = "";
 switch ($date_range) {
@@ -143,7 +172,7 @@ $top_books_sql = "SELECT b.Name, b.Category, SUM(o.Quantity) as total_sold,
                   LIMIT 5";
 $top_books_result = $conn->query($top_books_sql);
 
-// Inventory Status (unchanged)
+// Inventory Status
 $inventory_sql = "SELECT 
                     COUNT(*) as total_books,
                     SUM(Quantity) as total_stock,
@@ -152,6 +181,10 @@ $inventory_sql = "SELECT
                   FROM book";
 $inventory_result = $conn->query($inventory_sql);
 $inventory_data = $inventory_result->fetch_assoc();
+
+// Fetch all staff for staff management
+$staff_sql = "SELECT * FROM staff ORDER BY StaffID";
+$staff_result = $conn->query($staff_sql);
 ?>
 
 <!DOCTYPE html>
@@ -262,7 +295,6 @@ $inventory_data = $inventory_result->fetch_assoc();
         Admin Portal | Book Heaven Reporting System
     </div>
 
-    
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4">
@@ -270,15 +302,15 @@ $inventory_data = $inventory_result->fetch_assoc();
             <div class="flex items-center justify-between py-4 border-b">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="#" class="flex items-center">
+                    <a href="index.php" class="flex items-center">
                         <img src="img/logo.png" alt="Logo" class="h-10 mr-3" style="height: 40px; width: auto;">
                         <div>
                             <span class="text-2xl font-bold text-blue-800">Book Heaven</span>
                             <span class="text-xs text-gray-600 block">Admin Reports</span>
                         </div>
                     </a>
-                </div>
 
+                </div>
 
                 <!-- User Actions -->
                 <div class="flex items-center space-x-4">
@@ -306,6 +338,9 @@ $inventory_data = $inventory_result->fetch_assoc();
                     <li class="tab-link" data-tab="analytics">
                         <a href="#" class="text-gray-800 hover:text-blue-600 font-medium">Analytics</a>
                     </li>
+                    <li class="tab-link" data-tab="staff">
+                        <a href="#" class="text-gray-800 hover:text-blue-600 font-medium">Staff Management</a>
+                    </li>
                 </ul>
             </nav>
         </div>
@@ -315,6 +350,7 @@ $inventory_data = $inventory_result->fetch_assoc();
     <main class="container mx-auto px-4 py-8">
         <!-- Reports Tab -->
         <div id="reports-tab" class="tab-content active">
+            <!-- ... (existing reports tab content remains exactly the same) ... -->
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Report Generation</h1>
             </div>
@@ -540,138 +576,253 @@ $inventory_data = $inventory_result->fetch_assoc();
         <div id="analytics-tab" class="tab-content">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Sales Analytics</h1>
-                <div class="flex space-x-2">
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-download mr-2"></i>Export Data
-                    </button>
-                </div>
             </div>
+        </div>
 
-            <!-- Analytics Charts - Single Chart Now -->
-            <div class="grid grid-cols-1 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b">
-                        <h2 class="text-lg font-medium text-gray-800">Sales by Category (Last 30 Days)</h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="chart-container">
-                            <canvas id="categoryChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Top Selling Books -->
-            <div class="bg-white rounded-lg shadowSm overflow-hidden mb-8">
+        <!-- Analytics Charts - Single Chart Now -->
+        <div class="grid grid-cols-1 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="text-lg font-medium text-gray-800">Top Selling Books (Last 30 Days)</h2>
+                    <h2 class="text-lg font-medium text-gray-800">Sales by Category (Last 30 Days)</h2>
+                </div>
+                <div class="p-6">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling Books -->
+        <div class="bg-white rounded-lg shadowSm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b">
+                <h2 class="text-lg font-medium text-gray-800">Top Selling Books (Last 30 Days)</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <?php
+                        if ($top_books_result->num_rows > 0) {
+                            while ($row = $top_books_result->fetch_assoc()) {
+                                echo "<tr>";
+                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . $row["Name"] . "</td>";
+                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . $row["Category"] . "</td>";
+                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["total_sold"] . "</td>";
+                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>RM" . number_format($row["total_revenue"], 2) . "</td>";
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='4' class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>No sales data found</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b">
+                <h2 class="text-lg font-medium text-gray-800">Performance Metrics</h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-medium text-green-800">Average Order Value</h3>
+                        <i class="fas fa-shopping-cart text-green-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-green-800">RM<?php echo number_format($avg_order_value, 2); ?></p>
+                    <p class="text-sm text-green-600">Last 30 days</p>
+                </div>
+
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-medium text-purple-800">Total Books Sold</h3>
+                        <i class="fas fa-book text-purple-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-purple-800"><?php echo number_format($books_sold); ?></p>
+                    <p class="text-sm text-purple-600">Last 30 days</p>
+                </div>
+
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-medium text-blue-800">Total Revenue</h3>
+                        <i class="fas fa-dollar-sign text-blue-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-blue-800">RM<?php echo number_format($total_revenue, 2); ?></p>
+                    <p class="text-sm text-blue-600">Last 30 days</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Status -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b">
+                <h2 class="text-lg font-medium text-gray-800">Inventory Status</h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="bg-blue-100 p-4 rounded-full inline-flex mb-3">
+                        <i class="fas fa-book text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-medium text-blue-800">Total Books</h3>
+                    <p class="text-2xl font-bold text-blue-800"><?php echo $inventory_data['total_books']; ?></p>
+                </div>
+
+                <div class="text-center">
+                    <div class="bg-green-100 p-4 rounded-full inline-flex mb-3">
+                        <i class="fas fa-boxes text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-medium text-green-800">Total Stock</h3>
+                    <p class="text-2xl font-bold text-green-800"><?php echo $inventory_data['total_stock']; ?></p>
+                </div>
+
+                <div class="text-center">
+                    <div class="bg-yellow-100 p-4 rounded-full inline-flex mb-3">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-medium text-yellow-800">Low Stock</h3>
+                    <p class="text-2xl font-bold text-yellow-800"><?php echo $inventory_data['low_stock']; ?></p>
+                </div>
+
+                <div class="text-center">
+                    <div class="bg-red-100 p-4 rounded-full inline-flex mb-3">
+                        <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-medium text-red-800">Out of Stock</h3>
+                    <p class="text-2xl font-bold text-red-800"><?php echo $inventory_data['out_of_stock']; ?></p>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Staff Management Tab -->
+        <div id="staff-tab" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">Staff Management</h1>
+                <button onclick="openAddStaffModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Add Staff
+                </button>
+            </div>
+
+            <!-- Staff Table -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-800">Staff List</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jawatan</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             <?php
-                            if ($top_books_result->num_rows > 0) {
-                                while ($row = $top_books_result->fetch_assoc()) {
+                            if ($staff_result->num_rows > 0) {
+                                while ($row = $staff_result->fetch_assoc()) {
                                     echo "<tr>";
-                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . $row["Name"] . "</td>";
-                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . $row["Category"] . "</td>";
-                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["total_sold"] . "</td>";
-                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>RM" . number_format($row["total_revenue"], 2) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["StaffID"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["Staff_Name"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["Jawatan"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["Password"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>";
+                                    echo "<button onclick='openEditStaffModal(\"" . $row["StaffID"] . "\", \"" . $row["Staff_Name"] . "\", \"" . $row["Jawatan"] . "\", \"" . $row["Password"] . "\")' class='text-blue-600 hover:text-blue-900 mr-3'>Edit</button>";
+                                    echo "<a href='admin.php?delete_staff=" . $row["StaffID"] . "' class='text-red-600 hover:text-red-900' onclick='return confirm(\"Are you sure you want to delete this staff?\");'>Delete</a>";
+                                    echo "</td>";
                                     echo "</tr>";
                                 }
                             } else {
-                                echo "<tr><td colspan='4' class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>No sales data found</td></tr>";
+                                echo "<tr><td colspan='5' class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>No staff found</td></tr>";
                             }
                             ?>
                         </tbody>
                     </table>
                 </div>
             </div>
-
-            <!-- Performance Metrics -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-                <div class="px-6 py-4 border-b">
-                    <h2 class="text-lg font-medium text-gray-800">Performance Metrics</h2>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-green-50 p-4 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="font-medium text-green-800">Average Order Value</h3>
-                            <i class="fas fa-shopping-cart text-green-600"></i>
-                        </div>
-                        <p class="text-2xl font-bold text-green-800">RM<?php echo number_format($avg_order_value, 2); ?></p>
-                        <p class="text-sm text-green-600">Last 30 days</p>
-                    </div>
-
-                    <div class="bg-purple-50 p-4 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="font-medium text-purple-800">Total Books Sold</h3>
-                            <i class="fas fa-book text-purple-600"></i>
-                        </div>
-                        <p class="text-2xl font-bold text-purple-800"><?php echo number_format($books_sold); ?></p>
-                        <p class="text-sm text-purple-600">Last 30 days</p>
-                    </div>
-
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="font-medium text-blue-800">Total Revenue</h3>
-                            <i class="fas fa-dollar-sign text-blue-600"></i>
-                        </div>
-                        <p class="text-2xl font-bold text-blue-800">RM<?php echo number_format($total_revenue, 2); ?></p>
-                        <p class="text-sm text-blue-600">Last 30 days</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Inventory Status -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-                <div class="px-6 py-4 border-b">
-                    <h2 class="text-lg font-medium text-gray-800">Inventory Status</h2>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="text-center">
-                        <div class="bg-blue-100 p-4 rounded-full inline-flex mb-3">
-                            <i class="fas fa-book text-blue-600 text-2xl"></i>
-                        </div>
-                        <h3 class="font-medium text-blue-800">Total Books</h3>
-                        <p class="text-2xl font-bold text-blue-800"><?php echo $inventory_data['total_books']; ?></p>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="bg-green-100 p-4 rounded-full inline-flex mb-3">
-                            <i class="fas fa-boxes text-green-600 text-2xl"></i>
-                        </div>
-                        <h3 class="font-medium text-green-800">Total Stock</h3>
-                        <p class="text-2xl font-bold text-green-800"><?php echo $inventory_data['total_stock']; ?></p>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="bg-yellow-100 p-4 rounded-full inline-flex mb-3">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
-                        </div>
-                        <h3 class="font-medium text-yellow-800">Low Stock</h3>
-                        <p class="text-2xl font-bold text-yellow-800"><?php echo $inventory_data['low_stock']; ?></p>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="bg-red-100 p-4 rounded-full inline-flex mb-3">
-                            <i class="fas fa-times-circle text-red-600 text-2xl"></i>
-                        </div>
-                        <h3 class="font-medium text-red-800">Out of Stock</h3>
-                        <p class="text-2xl font-bold text-red-800"><?php echo $inventory_data['out_of_stock']; ?></p>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
+
+    <!-- Add Staff Modal -->
+    <div id="addStaffModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-800">Add New Staff</h3>
+                <button onclick="closeAddStaffModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="POST" action="admin.php">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
+                        <input type="text" name="staff_id" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
+                        <input type="text" name="staff_name" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jawatan</label>
+                        <input type="text" name="jawatan" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="text" name="password" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeAddStaffModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button type="submit" name="add_staff" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Staff</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Staff Modal -->
+    <div id="editStaffModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-800">Edit Staff</h3>
+                <button onclick="closeEditStaffModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="POST" action="admin.php">
+                <input type="hidden" name="staff_id" id="edit_staff_id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
+                        <input type="text" name="staff_name" id="edit_staff_name" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jawatan</label>
+                        <input type="text" name="jawatan" id="edit_jawatan" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="text" name="password" id="edit_password" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeEditStaffModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button type="submit" name="edit_staff" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Update Staff</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white pt-12 pb-6">
@@ -701,10 +852,10 @@ $inventory_data = $inventory_result->fetch_assoc();
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Home</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">New Releases</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Bestsellers</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Promotions</a></li>
+                        <li><a href="index.php" class="text-gray-400 hover:text-white">Home</a></li>
+                        <li><a href="newRelease.php" class="text-gray-400 hover:text-white">New Releases</a></li>
+                        <li><a href="bestseller.php" class="text-gray-400 hover:text-white">Bestsellers</a></li>
+                        <li><a href="promotion.php" class="text-gray-400 hover:text-white">Promotions</a></li>
                     </ul>
                 </div>
 
@@ -712,8 +863,8 @@ $inventory_data = $inventory_result->fetch_assoc();
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
 
@@ -746,7 +897,8 @@ $inventory_data = $inventory_result->fetch_assoc();
             </div>
         </div>
     </footer>
-    <!--JavaScript -->
+
+    <!-- JavaScript -->
     <script>
         // Tab functionality
         document.addEventListener('DOMContentLoaded', function() {
@@ -875,7 +1027,39 @@ $inventory_data = $inventory_result->fetch_assoc();
             url.searchParams.set('category', category);
             window.location.href = url.toString();
         }
+
+        // Staff Management Modal Functions
+        function openAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'flex';
+        }
+
+        function closeAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'none';
+        }
+
+        function openEditStaffModal(staffId, staffName, jawatan, password) {
+            document.getElementById('edit_staff_id').value = staffId;
+            document.getElementById('edit_staff_name').value = staffName;
+            document.getElementById('edit_jawatan').value = jawatan;
+            document.getElementById('edit_password').value = password;
+            document.getElementById('editStaffModal').style.display = 'flex';
+        }
+
+        function closeEditStaffModal() {
+            document.getElementById('editStaffModal').style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const addModal = document.getElementById('addStaffModal');
+            const editModal = document.getElementById('editStaffModal');
+
+            if (event.target == addModal) {
+                closeAddStaffModal();
+            }
+            if (event.target == editModal) {
+                closeEditStaffModal();
+            }
+        }
     </script>
 </body>
-
-</html>
