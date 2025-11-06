@@ -398,7 +398,7 @@ unset($_SESSION['error']);
                     <li><a href="newRelease.php" class="text-gray-800 hover:text-blue-600 font-medium">New Releases</a></li>
                     <li><a href="bestseller.php" class="text-gray-800 hover:text-blue-600 font-medium">Bestsellers</a></li>
                     <li><a href="promotion.php" class="text-gray-600 hover:text-blue-800 font-medium">Promotions</a></li>
-                    <li><a href="about.html" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
+                    <li><a href="about.php" class="text-gray-800 hover:text-blue-600 font-medium">About Us</a></li>
                 </ul>
             </nav>
         </div>
@@ -680,8 +680,8 @@ unset($_SESSION['error']);
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
 
@@ -849,9 +849,9 @@ unset($_SESSION['error']);
             if (!currentProduct) return;
 
             const quantity = parseInt(document.getElementById('productQuantity').value);
-            const format = 'Physical'; // Default format since radio buttons are removed
+            const format = 'Physical';
 
-            // Use promotion price if available, otherwise use original price
+            // Use promotion price
             const price = currentProduct.is_promotion && currentProduct.promotion_price ?
                 currentProduct.promotion_price : currentProduct.price;
 
@@ -909,9 +909,9 @@ unset($_SESSION['error']);
             <?php endif; ?>
             if (!currentProduct) return;
             const quantity = parseInt(document.getElementById('productQuantity').value);
-            const format = 'Physical'; // Default format since radio buttons are removed
+            const format = 'Physical';
 
-            // Use promotion price if available, otherwise use original price
+            // Use promotion price if available
             const price = currentProduct.is_promotion && currentProduct.promotion_price ?
                 currentProduct.promotion_price : currentProduct.price;
 
@@ -1010,7 +1010,7 @@ unset($_SESSION['error']);
                 for (let i = 0; i < dropdowns.length; i++) {
                     dropdowns[i].classList.remove('show');
                 }
-                // Close user menu (use style.display)
+                // Close user menu
                 const userDropdown = document.getElementById('userDropdown');
                 if (userDropdown && userDropdown.style.display === 'block') {
                     userDropdown.style.display = 'none';
