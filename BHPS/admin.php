@@ -262,6 +262,7 @@ $inventory_data = $inventory_result->fetch_assoc();
         Admin Portal | Book Heaven Reporting System
     </div>
 
+    
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4">
@@ -269,11 +270,15 @@ $inventory_data = $inventory_result->fetch_assoc();
             <div class="flex items-center justify-between py-4 border-b">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="#">
-                        <span class="text-2xl font-bold text-blue-800">Book Heaven</span>
-                        <span class="text-xs text-gray-600 block">Admin Reports</span>
+                    <a href="#" class="flex items-center">
+                        <img src="img/logo.png" alt="Logo" class="h-10 mr-3" style="height: 40px; width: auto;">
+                        <div>
+                            <span class="text-2xl font-bold text-blue-800">Book Heaven</span>
+                            <span class="text-xs text-gray-600 block">Admin Reports</span>
+                        </div>
                     </a>
                 </div>
+
 
                 <!-- User Actions -->
                 <div class="flex items-center space-x-4">
