@@ -19,7 +19,6 @@ $username = $logged_in ? $_SESSION['name'] : '';
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/animejs/lib/anime.iife.min.js"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -40,7 +39,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 <div class="flex items-center space-x-8">
                     <a href="index.php" class="text-gray-600 hover:text-blue-600">Home</a>
                     <a href="about.php" class="text-blue-600 font-medium">About Us</a>
-                    <a href="about.php" class="text-gray-600 hover:text-blue-600">Contact</a>
+                    <a href="#contact-section" class="text-gray-600 hover:text-blue-600">Contact</a>
                 </div>
             </div>
         </div>
@@ -59,27 +58,27 @@ $username = $logged_in ? $_SESSION['name'] : '';
     </section>
 
     <!-- Story Section -->
-    <section class="bg-blue-800 py-16">
+         <section class="bg-blue-800 py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div data-aos="fade-right">
                     <h2 class="text-3xl font-bold text-white mb-6">Our Story</h2>
                     <p class="text-white mb-4">
-                        Founded in 2025, Book Heaven started as a small independent bookstore with a passion for connecting readers with exceptional literature. It is a simple cozy corner shop that wishes to blossom into a beloved community hub for book lovers.
+                        Founded in 2025, Book Heaven is and started as a small independent bookstore with a passion for connecting readers with exceptional literature. It is a simple cozy corner shop that wishes to blossom into a beloved community hub for book lovers.
                     </p>
                     <p class="text-white mb-4">
-                        Our journey is still new and fueled by a deep love for storytelling and a commitment to fostering a culture of reading. Over countless hurdles, we've grown our collection to include over many titles spanning all genres and age groups.
+                        Our journey is still new and fueled by a deep love for storytelling and a commitment to fostering a culture of reading. Over countless of hurdles, we've grown our collection to include over many titles spanning all genres and age groups.
                     </p>
-                    <p class="text-white">
+                    <p class="text-white -600">
                         Today, Book Heaven stands as a testament to the enduring power of books to inspire, educate, and transform lives. We continue to curate our collection with the same care and dedication that marked our humble beginnings.
                     </p>
                 </div>
-                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80"
-                    alt="Library" class="rounded-lg shadow-xl w-full">
+                    <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                         alt="Library" class="rounded-lg shadow-xl w-full">
+                </div>
             </div>
         </div>
     </section>
-    
 
     <!-- Mission Section -->
     <section class="py-16 bg-white">
@@ -145,7 +144,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 <div class="bg-white rounded-lg shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="200">
                     <img src="img/chei.jpeg" alt="Team Member" class="w-full h-64 object-cover">
                     <div class="p-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Chei Kah Yan</h3>
+                        <h3 class="text-xl font-semibold text-gray-900">Chei Kai Yan</h3>
                         <p class="text-blue-600 mb-2">Back-end Programmer</p>
                         <p class="text-gray-600">
                             The one who handles the server, database, and application logic.
@@ -191,8 +190,8 @@ $username = $logged_in ? $_SESSION['name'] : '';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div data-aos="fade-right">
-                    <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80"
-                        alt="Books" class="rounded-lg shadow-xl w-full">
+                        <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80" 
+                         alt="Books" class="rounded-lg shadow-xl w-full">
                 </div>
                 <div data-aos="fade-left">
                     <h2 class="text-3xl font-bold text-gray-900 mb-6">Our Core Values</h2>
@@ -233,8 +232,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
         </div>
     </section>
 
-    <!-- Contact Section -->
-    <section class="py-1 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <section id="contact-section" class="py-1 px-10 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <br>
             <h2 class="text-3xl font-bold mb-4" data-aos="fade-up">Get in Contact with us!</h2>
@@ -242,8 +240,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 Tell us something or give us any feedback, We will love it!
             </p>
         </div>
-
-        <!-- ✅ Updated form -->
+        
         <section class="py-6 bg-white border-t border-b rounded-lg shadow-md">
             <div class="container mx-auto px-4">
                 <div class="max-w-4xl mx-auto">
@@ -321,19 +318,12 @@ $username = $logged_in ? $_SESSION['name'] : '';
         <br>
     </section>
 
-    <!-- Footer (unchanged) -->
-    <footer class="bg-gray-900 text-white pt-12 pb-6">
-        <!-- your existing footer content -->
+    <footer class="bg-gray-900 text-white pt-12 pb-6 text-center">
+        <p class="text-gray-400">© 2025 Book Heaven. All rights reserved.</p>
     </footer>
 
-    <script>
-        AOS.init();
-    </script>
-    <script>
-        feather.replace();
-    </script>
+    <script>AOS.init();</script>
+    <script>feather.replace();</script>
 </body>
 
-
 </html>
-
