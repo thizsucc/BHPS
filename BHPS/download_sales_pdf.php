@@ -431,11 +431,11 @@ function esc_attr($s)
 
     <!-- Download Button -->
     <div class="no-print text-center mt-8 mb-12">
-        <button id="downloadBtn" onclick="downloadPDF()"
-            class="bg-blue text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-            <i class="fas fa-download mr-3"></i>
-            Download PDF Report
-        </button>
+    <button id="downloadBtn" onclick="downloadPDF()"
+        class="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gradient-to-r hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+        <i class="fas fa-download mr-3"></i>
+        Download PDF Report
+    </button>
     </div>
 
     <script>
@@ -545,5 +545,6 @@ function esc_attr($s)
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </body>
+
 
 </html>
