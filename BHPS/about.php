@@ -58,7 +58,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
     </section>
 
     <!-- Story Section -->
-         <section class="bg-blue-800 py-16">
+    <section class="bg-blue-800 py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div data-aos="fade-right">
@@ -73,10 +73,10 @@ $username = $logged_in ? $_SESSION['name'] : '';
                         Today, Book Heaven stands as a testament to the enduring power of books to inspire, educate, and transform lives. We continue to curate our collection with the same care and dedication that marked our humble beginnings.
                     </p>
                 </div>
-                    <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                         alt="Library" class="rounded-lg shadow-xl w-full">
-                </div>
+                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                    alt="Library" class="rounded-lg shadow-xl w-full">
             </div>
+        </div>
         </div>
     </section>
 
@@ -190,8 +190,8 @@ $username = $logged_in ? $_SESSION['name'] : '';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div data-aos="fade-right">
-                        <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80" 
-                         alt="Books" class="rounded-lg shadow-xl w-full">
+                    <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80"
+                        alt="Books" class="rounded-lg shadow-xl w-full">
                 </div>
                 <div data-aos="fade-left">
                     <h2 class="text-3xl font-bold text-gray-900 mb-6">Our Core Values</h2>
@@ -240,7 +240,7 @@ $username = $logged_in ? $_SESSION['name'] : '';
                 Tell us something or give us any feedback, We will love it!
             </p>
         </div>
-        
+
         <section class="py-6 bg-white border-t border-b rounded-lg shadow-md">
             <div class="container mx-auto px-4">
                 <div class="max-w-4xl mx-auto">
@@ -322,8 +322,12 @@ $username = $logged_in ? $_SESSION['name'] : '';
         <p class="text-gray-400">© 2025 Book Heaven. All rights reserved.</p>
     </footer>
 
-    <script>AOS.init();</script>
-    <script>feather.replace();</script>
+    <script>
+        AOS.init();
+    </script>
+    <script>
+        feather.replace();
+    </script>
 </body>
 
 </html>
