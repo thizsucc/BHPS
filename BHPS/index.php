@@ -414,8 +414,8 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
 </section>
 
 <!-- New Releases -->
-<section class="py-12"     
-    style="background: url('img/sitebg.gif')">
+<section class="py-12"
+     style="background: url('img/sitebg.gif')">
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-3xl font-bold">New Releases</h2>
@@ -671,7 +671,7 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
             <div>
                 <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                    <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
                     <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                 </ul>
             </div>
@@ -708,7 +708,6 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
 
 <!-- JavaScript -->
 <script>
-    // Cart data - load from session
     let cart = <?php echo isset($_SESSION['cart']) ? json_encode($_SESSION['cart']) : '[]'; ?>;
     let currentProduct = null;
 
@@ -883,7 +882,7 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
         <?php endif; ?>
         if (!currentProduct) return;
         const quantity = parseInt(document.getElementById('productQuantity').value);
-        const format = 'Physical'; // Default format since radio buttons are removed
+        const format = 'Physical';
 
         // Use promotion price if available, otherwise use original price
         const price = currentProduct.is_promotion && currentProduct.promotion_price ?
@@ -1028,6 +1027,5 @@ if (!is_array($bestseller_ids)) $bestseller_ids = [];
     });
 </script>
 </body>
-
 
 </html>
