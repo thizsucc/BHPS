@@ -415,7 +415,7 @@ unset($_SESSION['error']);
                         <span class="mx-2">/</span>
                     </li>
                     <li class="flex items-center">
-                        <a href="#" class="text-blue-600 hover:text-blue-800">Categories</a>
+                        <a href="fiction.php" class="text-blue-600 hover:text-blue-800">Categories</a>
                         <span class="mx-2">/</span>
                     </li>
                     <li class="flex items-center">
@@ -681,8 +681,8 @@ unset($_SESSION['error']);
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
 
