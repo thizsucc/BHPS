@@ -11,10 +11,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bind_param("s", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            
+
             if (password_verify($password, $user['Password']) || $password === $user['Password']) {
                 $_SESSION["userID"] = $user["AdminID"];
                 $_SESSION["name"] = $user["AdminName"];
@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $updateStmt->execute();
                     $updateStmt->close();
                 }
-                
+
                 header("Location: admin.php");
                 exit();
             } else {
@@ -38,17 +38,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             echo "<script>alert('Account Admin does not exist!'); window.location='login.php';</script>";
         }
-    } 
+    }
     // staff table
     elseif (strpos($user_id, 'staff') === 0) {
         $stmt = $conn->prepare("SELECT * FROM staff WHERE StaffID = ?");
         $stmt->bind_param("s", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-    
+
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            
+
             if (password_verify($password, $user['Password']) || $password === $user['Password']) {
                 $_SESSION["userID"] = $user["StaffID"];
                 $_SESSION["name"] = $user["Staff_Name"];  // Fixed: Changed Staff_name to Staff_Name
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $updateStmt->execute();
                     $updateStmt->close();
                 }
-                
+
                 header("Location: staff.php");
                 exit();
             } else {
@@ -79,16 +79,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bind_param("s", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            
+
             if (password_verify($password, $user['Password']) || $password === $user['Password']) {
-                $_SESSION["userID"] = $user["User_ID"]; 
+                $_SESSION["userID"] = $user["User_ID"];
                 $_SESSION["name"] = $user["user_Name"];
                 $_SESSION["user_type"] = "user";
                 $_SESSION["loggedin"] = true;
-                
+
                 if ($password === $user['Password']) {
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                     $updateStmt = $conn->prepare("UPDATE user SET Password = ? WHERE User_ID = ?");
@@ -96,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $updateStmt->execute();
                     $updateStmt->close();
                 }
-                
+
                 header("Location: index.php");
                 exit();
             } else {
@@ -106,7 +106,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "<script>alert('Account not exist!'); window.location='login.php';</script>";
         }
     }
-    
+
     $stmt->close();
 }
 $conn->close();
@@ -114,6 +114,7 @@ $conn->close();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -129,17 +130,20 @@ $conn->close();
             display: block;
             pointer-events: none;
         }
+
         .dropdown:hover .dropdown-menu {
             visibility: visible;
             opacity: 1;
             transform: translateY(0);
             pointer-events: auto;
         }
+
         .dropdown:hover .fa-chevron-down {
             transform: rotate(180deg);
         }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans">
     <!-- Top Announcement Bar -->
     <div class="bg-blue-800 text-white text-center py-2 px-4 text-sm">
@@ -178,27 +182,24 @@ $conn->close();
                     <h2 class="text-2xl font-bold">Welcome Back</h2>
                     <p class="text-blue-100">Sign in to your Book Heaven account</p>
                 </div>
-                
+
                 <form method="POST" action="" class="p-6">
                     <div class="mb-4">
                         <label for="userID" class="block text-gray-700 font-medium mb-2">User ID</label>
                         <input type="text" id="userID" name="userID" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="user ID" required>
                     </div>
-                    
+
                     <div class="mb-6">
                         <label for="password" class="block text-gray-700 font-medium mb-2">Password</label>
                         <input type="password" id="password" name="password" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required>
-                        <div class="flex justify-end mt-2">
-                            <a href="#" class="text-sm text-blue-600 hover:underline">Forgot password?</a>
-                        </div>
                     </div>
-                    
+
                     <button type="submit" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors">
                         Sign in
                     </button>
-                    
+
                     <div class="mt-6 text-center">
-                        <p class="text-gray-600">Don't have an account? 
+                        <p class="text-gray-600">Don't have an account?
                             <a href="register.php" class="text-blue-600 hover:underline">Create one</a>
                         </p>
                     </div>
@@ -228,9 +229,9 @@ $conn->close();
                         <a href="#" class="text-gray-400 hover:text-white">
                             <i class="fab fa-youtube"></i>
                         </a>
-                    </div>  
+                    </div>
                 </div>
-                
+
                 <!-- Quick Links -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
@@ -240,16 +241,16 @@ $conn->close();
                         <li><a href="bestseller.php" class="text-gray-400 hover:text-white">Bestsellers</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Customer Service -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Customer Service</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Track Order</a></li>
+                        <li><a href="about.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="order_user.php" class="text-gray-400 hover:text-white">Track Order</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- Contact -->
                 <div>
                     <h3 class="text-xl font-bold mb-4">Contact Us</h3>
@@ -269,7 +270,7 @@ $conn->close();
                     </ul>
                 </div>
             </div>
-            
+
             <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row justify-between items-center">
                 <p class="text-gray-400 mb-4 md:mb-0">© 2025 Book Heaven. All rights reserved.</p>
                 <div class="flex space-x-6">
@@ -279,11 +280,12 @@ $conn->close();
             </div>
         </div>
     </footer>
-    
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            
+
         });
     </script>
 </body>
+
 </html>
