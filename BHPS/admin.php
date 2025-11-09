@@ -350,7 +350,6 @@ $staff_result = $conn->query($staff_sql);
     <main class="container mx-auto px-4 py-8">
         <!-- Reports Tab -->
         <div id="reports-tab" class="tab-content active">
-            <!-- ... (existing reports tab content remains exactly the same) ... -->
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Report Generation</h1>
             </div>
@@ -577,131 +576,130 @@ $staff_result = $conn->query($staff_sql);
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Sales Analytics</h1>
             </div>
-        </div>
 
-        <!-- Analytics Charts - Single Chart Now -->
-        <div class="grid grid-cols-1 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <!-- Analytics Charts -->
+            <div class="grid grid-cols-1 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b">
+                        <h2 class="text-lg font-medium text-gray-800">Sales by Category (Last 30 Days)</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Selling Books -->
+            <div class="bg-white rounded-lg shadowSm overflow-hidden mb-8">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="text-lg font-medium text-gray-800">Sales by Category (Last 30 Days)</h2>
+                    <h2 class="text-lg font-medium text-gray-800">Top Selling Books (Last 30 Days)</h2>
                 </div>
-                <div class="p-6">
-                    <div class="chart-container">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Selling Books -->
-        <div class="bg-white rounded-lg shadowSm overflow-hidden mb-8">
-            <div class="px-6 py-4 border-b">
-                <h2 class="text-lg font-medium text-gray-800">Top Selling Books (Last 30 Days)</h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <?php
-                        if ($top_books_result->num_rows > 0) {
-                            while ($row = $top_books_result->fetch_assoc()) {
-                                echo "<tr>";
-                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . $row["Name"] . "</td>";
-                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . $row["Category"] . "</td>";
-                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["total_sold"] . "</td>";
-                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>RM" . number_format($row["total_revenue"], 2) . "</td>";
-                                echo "</tr>";
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <?php
+                            if ($top_books_result->num_rows > 0) {
+                                while ($row = $top_books_result->fetch_assoc()) {
+                                    echo "<tr>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . $row["Name"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . $row["Category"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . $row["total_sold"] . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>RM" . number_format($row["total_revenue"], 2) . "</td>";
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='4' class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>No sales data found</td></tr>";
                             }
-                        } else {
-                            echo "<tr><td colspan='4' class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>No sales data found</td></tr>";
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Performance Metrics -->
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-            <div class="px-6 py-4 border-b">
-                <h2 class="text-lg font-medium text-gray-800">Performance Metrics</h2>
-            </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-green-50 p-4 rounded-lg">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-medium text-green-800">Average Order Value</h3>
-                        <i class="fas fa-shopping-cart text-green-600"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-green-800">RM<?php echo number_format($avg_order_value, 2); ?></p>
-                    <p class="text-sm text-green-600">Last 30 days</p>
-                </div>
-
-                <div class="bg-purple-50 p-4 rounded-lg">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-medium text-purple-800">Total Books Sold</h3>
-                        <i class="fas fa-book text-purple-600"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-purple-800"><?php echo number_format($books_sold); ?></p>
-                    <p class="text-sm text-purple-600">Last 30 days</p>
-                </div>
-
-                <div class="bg-blue-50 p-4 rounded-lg">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-medium text-blue-800">Total Revenue</h3>
-                        <i class="fas fa-dollar-sign text-blue-600"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-blue-800">RM<?php echo number_format($total_revenue, 2); ?></p>
-                    <p class="text-sm text-blue-600">Last 30 days</p>
+                            ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </div>
 
-        <!-- Inventory Status -->
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-            <div class="px-6 py-4 border-b">
-                <h2 class="text-lg font-medium text-gray-800">Inventory Status</h2>
-            </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="text-center">
-                    <div class="bg-blue-100 p-4 rounded-full inline-flex mb-3">
-                        <i class="fas fa-book text-blue-600 text-2xl"></i>
-                    </div>
-                    <h3 class="font-medium text-blue-800">Total Books</h3>
-                    <p class="text-2xl font-bold text-blue-800"><?php echo $inventory_data['total_books']; ?></p>
+            <!-- Performance Metrics -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-800">Performance Metrics</h2>
                 </div>
-
-                <div class="text-center">
-                    <div class="bg-green-100 p-4 rounded-full inline-flex mb-3">
-                        <i class="fas fa-boxes text-green-600 text-2xl"></i>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-medium text-green-800">Average Order Value</h3>
+                            <i class="fas fa-shopping-cart text-green-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-green-800">RM<?php echo number_format($avg_order_value, 2); ?></p>
+                        <p class="text-sm text-green-600">Last 30 days</p>
                     </div>
-                    <h3 class="font-medium text-green-800">Total Stock</h3>
-                    <p class="text-2xl font-bold text-green-800"><?php echo $inventory_data['total_stock']; ?></p>
-                </div>
 
-                <div class="text-center">
-                    <div class="bg-yellow-100 p-4 rounded-full inline-flex mb-3">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-medium text-purple-800">Total Books Sold</h3>
+                            <i class="fas fa-book text-purple-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-purple-800"><?php echo number_format($books_sold); ?></p>
+                        <p class="text-sm text-purple-600">Last 30 days</p>
                     </div>
-                    <h3 class="font-medium text-yellow-800">Low Stock</h3>
-                    <p class="text-2xl font-bold text-yellow-800"><?php echo $inventory_data['low_stock']; ?></p>
-                </div>
 
-                <div class="text-center">
-                    <div class="bg-red-100 p-4 rounded-full inline-flex mb-3">
-                        <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-medium text-blue-800">Total Revenue</h3>
+                            <i class="fas fa-dollar-sign text-blue-600"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-blue-800">RM<?php echo number_format($total_revenue, 2); ?></p>
+                        <p class="text-sm text-blue-600">Last 30 days</p>
                     </div>
-                    <h3 class="font-medium text-red-800">Out of Stock</h3>
-                    <p class="text-2xl font-bold text-red-800"><?php echo $inventory_data['out_of_stock']; ?></p>
                 </div>
             </div>
-        </div>
+
+            <!-- Inventory Status -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-800">Inventory Status</h2>
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="bg-blue-100 p-4 rounded-full inline-flex mb-3">
+                            <i class="fas fa-book text-blue-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-medium text-blue-800">Total Books</h3>
+                        <p class="text-2xl font-bold text-blue-800"><?php echo $inventory_data['total_books']; ?></p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-green-100 p-4 rounded-full inline-flex mb-3">
+                            <i class="fas fa-boxes text-green-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-medium text-green-800">Total Stock</h3>
+                        <p class="text-2xl font-bold text-green-800"><?php echo $inventory_data['total_stock']; ?></p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-yellow-100 p-4 rounded-full inline-flex mb-3">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-medium text-yellow-800">Low Stock</h3>
+                        <p class="text-2xl font-bold text-yellow-800"><?php echo $inventory_data['low_stock']; ?></p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-red-100 p-4 rounded-full inline-flex mb-3">
+                            <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                        </div>
+                        <h3 class="font-medium text-red-800">Out of Stock</h3>
+                        <p class="text-2xl font-bold text-red-800"><?php echo $inventory_data['out_of_stock']; ?></p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Staff Management Tab -->
@@ -909,14 +907,11 @@ $staff_result = $conn->query($staff_sql);
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
 
-                    // Remove active class from all tabs
                     tabLinks.forEach(tab => tab.querySelector('a').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600'));
                     tabContents.forEach(content => content.classList.remove('active'));
 
-                    // Add active class to clicked tab
                     this.querySelector('a').classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
 
-                    // Show corresponding content
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(`${tabId}-tab`).classList.add('active');
                 });
@@ -1063,3 +1058,5 @@ $staff_result = $conn->query($staff_sql);
         }
     </script>
 </body>
+
+</html>
