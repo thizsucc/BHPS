@@ -45,43 +45,43 @@ BHPS is an online book purchasing system with customer, staff, and admin roles. 
     <td align="center"><strong>Main Page</strong></td>
   </tr>
   <tr>
-    <td><img src="images/signin-web.png" alt="Web - SignIn" width="300"></td>
-    <td><img src="images/homepage-web.png" alt="Web - Home" width="300"></td>
+    <td><img src="images/SignInPage.jpg" alt="Web - SignIn" width="300"></td>
+    <td><img src="images/MainPage.jpg" alt="Web - Home" width="300"></td>
   </tr>
   <tr>
     <td align="center"><strong>Book Detail Page</strong></td>
     <td align="center"><strong>Checkout Page</strong></td>
   </tr>
   <tr>
-    <td><img src="images/profile-web.png" alt="Web - Profile" width="300"></td>
-    <td><img src="images/admin-web.png" alt="Web - Admin" width="300"></td>
+    <td><img src="images/BookDetail.jpg" alt="Web - Profile" width="300"></td>
+    <td><img src="images/AdminPortal.jpg" alt="Web - Admin" width="300"></td>
   </tr>
   <tr>
     <td align="center"><strong>Order Page</strong></td>
     <td align="center"><strong>Staff Page</strong></td>
   </tr>
   <tr>
-    <td><img src="images/signin-web.png" alt="Web - SignIn" width="300"></td>
-    <td><img src="images/homepage-web.png" alt="Web - Home" width="300"></td>
+    <td><img src="images/Order.jpg" alt="Web - SignIn" width="300"></td>
+    <td><img src="images/StaffPortal.jpg" alt="Web - Home" width="300"></td>
   </tr>
   <tr>
     <td align="center"><strong>Admin Page</strong></td>
   </tr>
   <tr>
-    <td><img src="images/profile-web.png" alt="Web - Profile" width="300"></td>
+    <td><img src="images/AdminPortal.jpg" alt="Web - Profile" width="300"></td>
   </tr>
 </table>
 
 
 ## Features:
-•	Registration: Quick sign-up and login for new and returning customers.
-•	Book Management:  Staff add, update, and delete books.
-•	Order & Payment Management: Customers make orders and pay securely, after making payment, customers can view and cancel order; staff process orders and update statuses; The system supports multiple payment methods and generates email receipts.
-•	Reporting: Admins generate sales report and staff can view and download sales reports to track performance.
-•	Registration: Quick sign-up and login for new and returning customers.
-•	Book Management:  Staff add, update, and delete books.
-•	Order & Payment Management: Customers make orders and pay securely, after making payment, customers can view and cancel order; staff process orders and update statuses; The system supports multiple payment methods and generates email receipts.
-•	Reporting: Admins generate sales report and staff can view and download sales reports to track performance.
+- Registration: Quick sign-up and login for new and returning customers.
+-	Book Management:  Staff add, update, and delete books.
+-	Order & Payment Management: Customers make orders and pay securely, after making payment, customers can view and cancel order; staff process orders and update statuses; The system supports multiple payment methods and generates email receipts.
+-	Reporting: Admins generate sales report and staff can view and download sales reports to track performance.
+-	Registration: Quick sign-up and login for new and returning customers.
+-	Book Management:  Staff add, update, and delete books.
+-	Order & Payment Management: Customers make orders and pay securely, after making payment, customers can view and cancel order; staff process orders and update statuses; The system supports multiple payment methods and generates email receipts.
+-	Reporting: Admins generate sales report and staff can view and download sales reports to track performance.
 
 ## Technologies Used:
 Software Components:
@@ -103,7 +103,7 @@ To get started with BookHeaven on your local machine, follow the steps below:
 
 
 ## Contribution:
-Thank you for the team that have contributed to the development of this app!
+Thank you for the team that have contributed to the development of this website!
 
 <a href="https://github.com/Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media" />
