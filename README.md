@@ -1,6 +1,6 @@
 <br />
 <div align="center">
-  <a href="https://github.com/Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media">
+  <a href="https://github.com/fkhrlhilmi/BookHeaven-PurchasingSystem/tree/main">
     <img src="images/logo.png" alt="Logo" width="100" height="100">
   </a>
 
