@@ -1,12 +1,10 @@
-# BHPS - Book Heaven Purchasing System
-
 <br />
 <div align="center">
   <a href="https://github.com/Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media">
     <img src="images/logo.png" alt="Logo" width="100" height="100">
   </a>
 
-# LearnSphere - Social Media App
+# BHPS - Book Heaven Purchasing System
 </div>
 
 BHPS is an online book purchasing system with customer, staff, and admin roles. Admins manage the platform, oversee the entire catalog, and handle user accounts, while staff manage orders and content, and customers purchase books through a seamless process.
@@ -111,9 +109,13 @@ Thank you for the team that have contributed to the development of this app!
   <img src="https://contrib.rocks/image?repo=Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media" />
 </a>
 
-
 ## License:
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project uses multiple open-source licenses depending on the technologies used:
+- Apache License 2.0 (Apache-2.0) — applied to the main backend logic and server-side scripts.
+- Mozilla Public License 2.0 (MPL-2.0) — used for parts of the project involving shared or modified open-source components.
+- Open Software License 3.0 (OSL-3.0) — covers the general project distribution and collaborative work.
+- HTML, CSS, JavaScript, and MySQL — developed and used under their respective open and free usage terms.
+This project follows open-source principles and is distributed for educational and non-commercial use.
 
 ## Acknowledgments:
 - VSCode: For offering great tools for PHP development.
