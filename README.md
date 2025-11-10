@@ -1,7 +1,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/fkhrlhilmi/BookHeaven-PurchasingSystem/tree/main">
-    <img src="images/logo.png" alt="Logo">
+    <img src="images/logo.png" alt="Logo" width="150" height="150">
   </a>
 
 # BHPS - Book Heaven Purchasing System
