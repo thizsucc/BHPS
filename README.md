@@ -105,8 +105,8 @@ To get started with BookHeaven on your local machine, follow the steps below:
 ## Contribution:
 Thank you for the team that have contributed to the development of this website!
 
-<a href="https://github.com/Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Kushiro79/SD_G01_03_LearnSphere_Educational_Social_Media" />
+<a href="https://github.com/fkhrlhilmi/BookHeaven-PurchasingSystem/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=fkhrlhilmi/BookHeaven-PurchasingSystem" />
 </a>
 
 ## License:
